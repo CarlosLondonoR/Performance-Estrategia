@@ -6,7 +6,7 @@
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
   <!-- Plotly local (NO CDN). Debe existir plotly.min.js en la raíz del repo -->
-  <script src="plotly.min.js"></script>
+  <script src="./plotly.min.js"></script>
 
   <style>
     :root {
@@ -144,8 +144,8 @@
           <label>Vectores (múltiple)</label>
           <select id="vectorMulti" multiple size="6"></select>
           <div class="row">
-            <button class="btn ghost" id="selectAll">Todos</button>
-            <button class="btn ghost" id="selectNone">Ninguno</button>
+            <button class="btn ghost" id="selectAll" type="button">Todos</button>
+            <button class="btn ghost" id="selectNone" type="button">Ninguno</button>
           </div>
         </div>
         <div class="control">
@@ -156,14 +156,14 @@
         <div class="control">
           <label>Ventanas rápidas</label>
           <div class="btn-group" id="quickRanges">
-            <button class="btn ghost" data-range="1M">1M</button>
-            <button class="btn ghost" data-range="3M">3M</button>
-            <button class="btn ghost" data-range="6M">6M</button>
-            <button class="btn ghost" data-range="YTD">YTD</button>
-            <button class="btn ghost" data-range="1Y">1Y</button>
-            <button class="btn ghost" data-range="2Y">2Y</button>
-            <button class="btn ghost" data-range="3Y">3Y</button>
-            <button class="btn ghost" data-range="ALL">Desde inicio</button>
+            <button class="btn ghost" type="button" data-range="1M">1M</button>
+            <button class="btn ghost" type="button" data-range="3M">3M</button>
+            <button class="btn ghost" type="button" data-range="6M">6M</button>
+            <button class="btn ghost" type="button" data-range="YTD">YTD</button>
+            <button class="btn ghost" type="button" data-range="1Y">1Y</button>
+            <button class="btn ghost" type="button" data-range="2Y">2Y</button>
+            <button class="btn ghost" type="button" data-range="3Y">3Y</button>
+            <button class="btn ghost" type="button" data-range="ALL">Desde inicio</button>
           </div>
         </div>
         <div class="control">
@@ -173,8 +173,8 @@
             <input type="date" id="dateTo" />
           </div>
           <div class="row">
-            <button class="btn" id="applyDates">Aplicar</button>
-            <button class="btn ghost" id="resetDates">Reset</button>
+            <button class="btn" id="applyDates" type="button">Aplicar</button>
+            <button class="btn ghost" id="resetDates" type="button">Reset</button>
           </div>
           <span class="small" id="dateSummary"></span>
         </div>
@@ -188,7 +188,6 @@
     </section>
 
     <section class="metrics" id="metrics">
-      <!-- KPIs dinámicos -->
       <div class="metric">
         <div class="desc">Alpha acumulado</div>
         <div class="kpi" id="mCumulative">—</div>
@@ -258,7 +257,6 @@
     // UTILIDADES GENERALES
     // =============================
 
-    const DAY_MS = 24*60*60*1000;
     const ANN_FACTOR = Math.sqrt(252); // anualización a partir de std diaria
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot","usdjpy_spot","Duracion"]);
 
@@ -298,7 +296,7 @@
 
     function parseDate_DDMMYYYY(s) {
       // Espera formato DD/MM/YYYY
-      const [dd, mm, yyyy] = s.split("/");
+      const [dd, mm, yyyy] = (s || "").split("/");
       const d = new Date(Date.UTC(Number(yyyy), Number(mm)-1, Number(dd)));
       return d;
     }
@@ -309,24 +307,48 @@
       if (!isFinite(x)) return "—";
       return (x*100).toFixed(digits) + "%";
     }
-    function fmtBps(x, digits=1) {
-      if (!isFinite(x)) return "—";
-      return (x*10000).toFixed(digits) + " pbs";
-    }
     function fmtNum(x, digits=6) {
       if (!isFinite(x)) return "—";
       return x.toFixed(digits);
     }
 
+    // CSV parser robusto: ;, BOM, campos entre comillas, ; finales
     function parseCSV(text, delimiter=";") {
-      // Sencillo parser para CSV con ';'. Respeta valores con espacios/tildes.
-      // NO soporta celdas con comillas y delimitadores dentro (no esperado en este caso).
-      const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim().length>0);
+      const cleaned = text.replace(/^\uFEFF/, "");
+      const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length>0);
       if (lines.length === 0) return { headers:[], rows:[] };
-      const headers = lines[0].split(delimiter).map(h => h.trim());
+
+      const parseLine = (line) => {
+        const out = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i=0; i<line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i+1] === '"') { // escape ""
+              cur += '"'; i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === delimiter && !inQuotes) {
+            out.push(cur);
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+        out.push(cur);
+        return out.map(s => s.trim());
+      };
+
+      let headers = parseLine(lines[0]);
+      // elimina header vacío al final si viene con ; extra
+      if (headers.length && headers[headers.length-1] === "") headers.pop();
+
       const rows = [];
       for (let i=1; i<lines.length; i++) {
-        const parts = lines[i].split(delimiter);
+        const parts = parseLine(lines[i]);
+        // rellena o recorta para igualar longitud de headers
         const obj = {};
         for (let j=0; j<headers.length; j++) {
           obj[headers[j]] = (parts[j] ?? "").trim();
@@ -360,7 +382,7 @@
       vectorNames: [],
 
       // resultados precomputados
-      perVector: {},       // vectorName -> { alpha: Float64Array, compDaily: {alloc, selRV, selRF, fx} arrays, contribByAssetDaily: {assetName -> Float64Array} }
+      perVector: {},       // vectorName -> { alpha: Float64Array, compDaily: {alloc, selRV, selRF, fx}, contribByAssetDaily }
 
       // selección UI
       selectedVectors: [],
@@ -378,17 +400,20 @@
     async function loadCSVFiles() {
       const [trText, gpText] = await Promise.all([
         fetch("trackrecord.csv").then(r => {
-          if (!r.ok) throw new Error("Error cargando trackrecord.csv");
+          if (!r.ok) throw new Error("Error cargando trackrecord.csv (HTTP " + r.status + ")");
           return r.text();
         }),
         fetch("gaps.csv").then(r => {
-          if (!r.ok) throw new Error("Error cargando gaps.csv");
+          if (!r.ok) throw new Error("Error cargando gaps.csv (HTTP " + r.status + ")");
           return r.text();
         })
       ]);
 
       const track = parseCSV(trText, ";");
       const gaps = parseCSV(gpText, ";");
+
+      if (track.headers.length === 0) throw new Error("trackrecord.csv vacío o sin headers");
+      if (gaps.headers.length === 0) throw new Error("gaps.csv vacío o sin headers");
 
       // Parseo de fechas
       const trDateCol = track.headers[0];
@@ -399,18 +424,22 @@
       const trISO = trDates.map(toISODate);
       const gpISO = gpDates.map(toISODate);
 
-      // Intersección de fechas, manteniendo orden ascendente
-      const setTR = new Set(trISO);
+      // Intersección de fechas, manteniendo orden ascendente de trackrecord
       const setGP = new Set(gpISO);
-      const commonISO = trISO.filter(d => setGP.has(d));
-      if (commonISO.length === 0) throw new Error("No hay fechas comunes entre trackrecord y gaps");
-      // Orden natural ya viene de trackrecord; validamos orden y unicidad
-      const uniq = Array.from(new Set(commonISO));
-      if (uniq.length !== commonISO.length) {
+      const common = [];
+      for (let i=0; i<trISO.length; i++) {
+        const d = trISO[i];
+        if (setGP.has(d)) common.push(d);
+      }
+      if (common.length === 0) throw new Error("No hay fechas comunes entre trackrecord y gaps");
+
+      // Unicidad
+      const uniq = Array.from(new Set(common));
+      if (uniq.length !== common.length) {
         console.warn("Fechas duplicadas en datos comunes; se tomarán únicas en el orden encontrado.");
       }
-      const common = uniq;
-      const commonDateObjs = common.map(s => new Date(s+"T00:00:00Z"));
+      const commonISO = uniq;
+      const commonDateObjs = commonISO.map(s => new Date(s+"T00:00:00Z"));
 
       // Índices de mapeo
       const idxTR = new Map(trISO.map((d,i) => [d, i]));
@@ -424,15 +453,15 @@
       validTickers.forEach(tk => {
         const { asset, group } = TICKER_MAP[tk];
         groupsByAsset[asset] = group;
-        const prices = new Float64Array(common.length);
-        for (let k=0; k<common.length; k++) {
-          const r = track.rows[idxTR.get(common[k])];
+        const prices = new Float64Array(commonISO.length);
+        for (let k=0; k<commonISO.length; k++) {
+          const r = track.rows[idxTR.get(commonISO[k])];
           prices[k] = toNumberCell(r[tk]);
         }
         // Retornos simples
-        const rets = new Float64Array(common.length);
+        const rets = new Float64Array(commonISO.length);
         rets[0] = NaN; // primera fila debe producir NaN en alpha
-        for (let k=1; k<common.length; k++) {
+        for (let k=1; k<commonISO.length; k++) {
           const p0 = prices[k-1], p1 = prices[k];
           rets[k] = (isFinite(p0) && isFinite(p1) && p0 !== 0) ? (p1/p0 - 1) : 0;
         }
@@ -442,10 +471,9 @@
       // --- GAPS: pbs -> proporción; columnas formateadas Asset_Vector ---
       const vectorCols = gaps.headers.slice(1); // todas menos fecha
       const vectors = {}; // vectorName -> { gapsByAsset: {asset -> array} }
-      const allAssetsInGaps = new Set();
 
-      // Inicializamos fechas comunes en gaps
       for (const col of vectorCols) {
+        if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
         if (lastUnd <= 0 || lastUnd === col.length-1) {
           console.warn("Columna gaps sin separador válido '_':", col);
@@ -453,11 +481,11 @@
         }
         const assetName = col.slice(0, lastUnd);
         const vectorName = col.slice(lastUnd+1);
-        allAssetsInGaps.add(assetName);
         if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {} };
-        const arr = new Float64Array(common.length);
-        for (let k=0; k<common.length; k++) {
-          const r = gaps.rows[idxGP.get(common[k])];
+
+        const arr = new Float64Array(commonISO.length);
+        for (let k=0; k<commonISO.length; k++) {
+          const r = gaps.rows[idxGP.get(commonISO[k])];
           const v = toNumberCell(r[col]); // en pbs
           arr[k] = isFinite(v) ? (v / 10000) : 0; // convertir a proporción
         }
@@ -466,7 +494,7 @@
 
       // Guardar en estado
       state.dates = commonDateObjs;
-      state.isoDates = common;
+      state.isoDates = commonISO;
       state.returnsByAsset = returnsByAsset;
       state.groupsByAsset = groupsByAsset;
       state.vectors = vectors;
@@ -496,7 +524,7 @@
         const compSelRF = new Float64Array(N);
         const compFX   = new Float64Array(N);
         const contribByAssetDaily = {}; // asset -> Float64Array
-        // Solo assets que aparezcan en gaps (otras contribuciones se asumen 0)
+        // Solo assets que aparezcan en gaps del vector
         const assetsForVector = Object.keys(gapsByAsset);
         for (const a of assetsForVector) {
           contribByAssetDaily[a] = new Float64Array(N);
@@ -510,10 +538,9 @@
           let sumRetRF = 0, cntRetRF = 0;
           let fxContrib = 0;
 
-          // Primero recorremos ALL assets de returns por grupo para medias equal-weight
+          // Equal-weight de retornos por bloque usando TODOS los assets con retorno
           for (const a of allAssetsWithReturns) {
             const ret = state.returnsByAsset[a]?.[t];
-            const group = state.groupsByAsset[a];
             if (!isFinite(ret)) continue;
             if (RVset.has(a)) { sumRetRV += ret; cntRetRV++; }
             if (RFset.has(a)) { sumRetRF += ret; cntRetRF++; }
@@ -521,8 +548,7 @@
           const ewRV = cntRetRV>0 ? (sumRetRV / cntRetRV) : 0;
           const ewRF = cntRetRF>0 ? (sumRetRF / cntRetRF) : 0;
 
-          // Luego recorremos SOLO assets con gaps del vector (contribuciones reales)
-          let aSum = 0;
+          // Recorremos SOLO assets con gaps del vector (contribuciones reales)
           for (const a of assetsForVector) {
             const gap = gapsByAsset[a]?.[t] ?? 0;
             const ret = state.returnsByAsset[a]?.[t];
@@ -533,7 +559,6 @@
             // contribución directa
             const c = (isFinite(gap) && isFinite(ret)) ? (gap * ret) : 0;
             contribByAssetDaily[a][t] = c;
-            aSum += (t===0 ? NaN : c); // primera fila será NaN globalmente
 
             // acumuladores de grupo para allocation/selection
             if (group === "RV") { G_RV += (isFinite(gap)?gap:0); nRV++; }
@@ -562,8 +587,7 @@
           compSelRV[t] = (t===0 ? NaN : selRV);
           compSelRF[t] = (t===0 ? NaN : selRF);
           compFX[t]    = (t===0 ? NaN : fxContrib);
-
-          alpha[t] = (t===0 ? NaN : (alloc + selRV + selRF + fxContrib));
+          alpha[t]     = (t===0 ? NaN : (alloc + selRV + selRF + fxContrib));
         }
 
         perVector[vName] = {
@@ -594,12 +618,13 @@
       const last = dates[dates.length-1];
       let from = null;
       let to = last;
-      const lastY = last.getUTCFullYear();
-      const lastM = last.getUTCMonth();
 
       const addMonths = (date, m) => {
         const d = new Date(date.getTime());
+        const origD = d.getUTCDate();
         d.setUTCMonth(d.getUTCMonth() + m);
+        // Ajuste para fin de mes
+        if (d.getUTCDate() !== origD) d.setUTCDate(0);
         return d;
       };
 
@@ -607,23 +632,17 @@
         case "1M": from = addMonths(last, -1); break;
         case "3M": from = addMonths(last, -3); break;
         case "6M": from = addMonths(last, -6); break;
-        case "YTD": from = new Date(Date.UTC(lastY, 0, 1)); break;
+        case "YTD": from = new Date(Date.UTC(last.getUTCFullYear(), 0, 1)); break;
         case "1Y": from = addMonths(last, -12); break;
         case "2Y": from = addMonths(last, -24); break;
         case "3Y": from = addMonths(last, -36); break;
         case "ALL": from = dates[0]; break;
         default: from = dates[0];
       }
-      // Asegurar límites
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
     }
 
-    function subarrayByIdx(arr, idxs) {
-      const out = [];
-      for (const i of idxs) out.push(arr[i]);
-      return out;
-    }
     function vectorSubarrayByIdx(typedArr, idxs) {
       const out = new Float64Array(idxs.length);
       for (let k=0; k<idxs.length; k++) out[k] = typedArr[idxs[k]];
@@ -672,8 +691,8 @@
     function downsideStd(arr) {
       const neg = arr.filter(v => isFinite(v) && v<0);
       if (neg.length<=1) return NaN;
-      const m = 0; // Sortino respecto a 0
-      let s=0; 
+      const m = 0;
+      let s=0;
       for (const v of neg) { const d=v-m; s += d*d; }
       return Math.sqrt(s/(neg.length-1));
     }
@@ -686,7 +705,7 @@
         const dd = peak - v; // magnitud positiva
         if (dd > maxDD) maxDD = dd;
       }
-      return -maxDD; // devolvemos negativo para consistencia con curva (negativa)
+      return -maxDD; // devolver negativo para consistencia
     }
 
     function metricsForSeries(alphaWindow) {
@@ -712,7 +731,6 @@
     // =============================
 
     function baseLayout(title="") {
-      const isDark = (state.theme === "dark");
       return {
         title: { text: title, font: { size: 12 }, x: 0, xanchor: 'left' },
         paper_bgcolor: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim(),
@@ -741,22 +759,10 @@
       return colors[i % colors.length];
     }
 
-    function renderAll() {
-      updateMetrics();
-      plotCumulative();
-      plotDrawdown();
-      plotWaterfall();
-      plotDecomposition();
-      plotHeatmap();
-      plotBars();
-      plotHist();
-    }
-
     function currentWindowIdxs() {
       if (state.dateFrom || state.dateTo) {
         return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
       }
-      // por defecto: ALL
       return idxWindowByKey("ALL");
     }
 
@@ -765,6 +771,11 @@
     }
 
     function plotCumulative() {
+      const container = 'chartCumulative';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const idxs = currentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
@@ -782,16 +793,21 @@
           x, y: cum,
           line: { color: palette(i), width: 2 },
           hovertemplate: '%{x|%d-%m-%Y}<br>Alpha diario: %{customdata[0]:.6f}<br>Cumul.: %{y:.6f}<extra>'+v+'</extra>',
-          customdata: aw.map(a => isFinite(a)?a:NaN)
+          customdata: Array.from(aw).map(a => isFinite(a)?a:NaN).map(a => [a]) // matriz para customdata[0]
         });
       }
 
       const layout = baseLayout('');
       layout.yaxis.title = 'Alpha acumulado';
-      Plotly.react('chartCumulative', traces, layout, {displayModeBar: false, responsive: true});
+      Plotly.react(container, traces, layout, {displayModeBar: false, responsive: true});
     }
 
     function plotDrawdown() {
+      const container = 'chartDrawdown';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const idxs = currentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
@@ -812,7 +828,7 @@
 
       const layout = baseLayout('');
       layout.yaxis.title = 'Drawdown (acumulado desde pico)';
-      Plotly.react('chartDrawdown', traces, layout, {displayModeBar: false, responsive: true});
+      Plotly.react(container, traces, layout, {displayModeBar: false, responsive: true});
     }
 
     function aggregateContribByAsset(vectorName, idxs) {
@@ -830,8 +846,16 @@
     }
 
     function plotWaterfall() {
+      const container = 'chartWaterfall';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const v = state.focusVector;
-      if (!v) return;
+      if (!v || !state.perVector[v]) {
+        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
+        return;
+      }
       const idxs = currentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
 
@@ -839,7 +863,7 @@
       const orderAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX]
         .filter(a => a in agg);
 
-      const x = orderAssets;
+      const x = orderAssets.slice();
       const y = orderAssets.map(a => agg[a]);
       const measures = new Array(x.length).fill('relative');
 
@@ -852,7 +876,7 @@
       const trace = {
         type: 'waterfall',
         x, y, measure: measures,
-        text: y.map((v,i)=> (i===x.length-1 ? fmtNum(v,6) : fmtNum(v,6))),
+        text: y.map((v)=> fmtNum(v,6)),
         textposition: 'outside',
         connector: { line: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() } },
         decreasing: { marker: { color: '#ef4444' } },
@@ -865,14 +889,19 @@
       layout.showlegend = false;
       layout.yaxis.title = 'Contribución acumulada';
       document.getElementById('wfVector').textContent = `Vector: ${v}`;
-      Plotly.react('chartWaterfall', [trace], layout, {displayModeBar: false, responsive: true});
+      Plotly.react(container, [trace], layout, {displayModeBar: false, responsive: true});
     }
 
     function plotDecomposition() {
+      const container = 'chartDecomposition';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const idxs = currentWindowIdxs();
       const sel = selectedVectorsList();
       if (!sel.length) {
-        Plotly.react('chartDecomposition', [], baseLayout(''), {displayModeBar:false, responsive:true});
+        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
         return;
       }
 
@@ -895,7 +924,7 @@
       const layout = baseLayout('');
       layout.barmode = 'stack';
       layout.yaxis.title = 'Contribución acumulada';
-      Plotly.react('chartDecomposition', [trAlloc, trSelRV, trSelRF, trFX], layout, {displayModeBar:false, responsive:true});
+      Plotly.react(container, [trAlloc, trSelRV, trSelRF, trFX], layout, {displayModeBar:false, responsive:true});
     }
 
     function groupContribByMonthAndAsset(vectorName, idxs) {
@@ -935,8 +964,16 @@
     }
 
     function plotHeatmap() {
+      const container = 'chartHeatmap';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const v = state.focusVector;
-      if (!v) return;
+      if (!v || !state.perVector[v]) {
+        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
+        return;
+      }
       const idxs = currentWindowIdxs();
       const { x, y, z } = groupContribByMonthAndAsset(v, idxs);
       const trace = {
@@ -952,12 +989,20 @@
       layout.xaxis.type = 'category';
       layout.yaxis.type = 'category';
       layout.yaxis.autorange = 'reversed';
-      Plotly.react('chartHeatmap', [trace], layout, {displayModeBar:false, responsive:true});
+      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
     }
 
     function plotBars() {
+      const container = 'chartBars';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const v = state.focusVector;
-      if (!v) return;
+      if (!v || !state.perVector[v]) {
+        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
+        return;
+      }
       const idxs = currentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
 
@@ -970,12 +1015,20 @@
       const layout = baseLayout('');
       layout.xaxis.title = 'Asset class';
       layout.yaxis.title = 'Contribución acumulada';
-      Plotly.react('chartBars', [trace], layout, {displayModeBar:false, responsive:true});
+      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
     }
 
     function plotHist() {
+      const container = 'chartHist';
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado, no se puede graficar:", container);
+        return;
+      }
       const v = state.focusVector;
-      if (!v) return;
+      if (!v || !state.perVector[v]) {
+        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
+        return;
+      }
       const idxs = currentWindowIdxs();
       const alpha = state.perVector[v].alpha;
       const aw = vectorSubarrayByIdx(alpha, idxs);
@@ -991,12 +1044,21 @@
       const layout = baseLayout('');
       layout.xaxis.title = 'Alpha diario';
       layout.yaxis.title = 'Frecuencia';
-      Plotly.react('chartHist', [trace], layout, {displayModeBar:false, responsive:true});
+      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
     }
 
     function updateMetrics() {
       const v = state.focusVector;
-      if (!v) return;
+      if (!v || !state.perVector[v]) {
+        document.getElementById('mCumulative').textContent = "—";
+        document.getElementById('mVol').textContent = "—";
+        document.getElementById('mIR').textContent = "—";
+        document.getElementById('mSortino').textContent = "—";
+        document.getElementById('mHit').textContent = "—";
+        document.getElementById('mMDD').textContent = "—";
+        document.getElementById('dateSummary').textContent = "";
+        return;
+      }
       const idxs = currentWindowIdxs();
       const alpha = state.perVector[v].alpha;
       const aw = vectorSubarrayByIdx(alpha, idxs);
@@ -1013,6 +1075,22 @@
       const df = state.dateFrom ? toISODate(state.dateFrom) : toISODate(state.dates[0]);
       const dt = state.dateTo ? toISODate(state.dateTo) : toISODate(state.dates[state.dates.length-1]);
       document.getElementById('dateSummary').textContent = `Ventana: ${df} → ${dt} (${idxs.length} días)`;
+    }
+
+    function renderAll() {
+      if (!window.Plotly) {
+        console.warn("Plotly no está cargado. Revisa la etiqueta <script src=\"./plotly.min.js\"></script> y la ubicación del archivo.");
+        document.getElementById('loadStatus').textContent = "Plotly no cargado";
+        return;
+      }
+      updateMetrics();
+      plotCumulative();
+      plotDrawdown();
+      plotWaterfall();
+      plotDecomposition();
+      plotHeatmap();
+      plotBars();
+      plotHist();
     }
 
     // =============================
@@ -1089,18 +1167,18 @@
         const df = state.dates[idxs[0]];
         const dt = state.dates[idxs[idxs.length-1]];
         state.dateFrom = df; state.dateTo = dt;
-        const dFrom = document.getElementById('dateFrom');
-        const dTo = document.getElementById('dateTo');
-        dFrom.value = toISODate(df);
-        dTo.value = toISODate(dt);
+        const dFromEl = document.getElementById('dateFrom');
+        const dToEl = document.getElementById('dateTo');
+        dFromEl.value = toISODate(df);
+        dToEl.value = toISODate(dt);
         renderAll();
       });
 
       document.getElementById('applyDates').addEventListener('click', () => {
-        const dFrom = document.getElementById('dateFrom').value;
-        const dTo = document.getElementById('dateTo').value;
-        state.dateFrom = dFrom ? new Date(dFrom+"T00:00:00Z") : null;
-        state.dateTo = dTo ? new Date(dTo+"T00:00:00Z") : null;
+        const dFromStr = document.getElementById('dateFrom').value;
+        const dToStr = document.getElementById('dateTo').value;
+        state.dateFrom = dFromStr ? new Date(dFromStr+"T00:00:00Z") : null;
+        state.dateTo = dToStr ? new Date(dToStr+"T00:00:00Z") : null;
         if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) {
           alert("Fecha desde no puede ser mayor que fecha hasta.");
           return;
@@ -1139,8 +1217,9 @@
         renderAll();
       } catch (err) {
         console.error(err);
+        const msg = (err && err.message) ? err.message : String(err);
         document.getElementById('loadStatus').textContent = "Error cargando datos";
-        alert("Ocurrió un error al cargar o procesar los archivos CSV. Revisa la consola.");
+        alert("Ocurrió un error al cargar o procesar los archivos CSV:\n\n" + msg + "\n\nRevisa la consola (F12) → pestaña Console, y Network para 404/errores.");
       }
     })();
   </script>
