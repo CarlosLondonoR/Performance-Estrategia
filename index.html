@@ -109,20 +109,18 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     .plot { flex: 1; min-height: 300px; }
-    .inline {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .small {
-      font-size: 12px; color: var(--muted);
-    }
-    .row {
-      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-    }
+    .small { font-size: 12px; color: var(--muted); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     @media (max-width: 1100px) {
       .controls-grid { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: 1fr 1fr 1fr; }
       .charts { grid-template-columns: 1fr; }
     }
+
+    /* Bloque diagnóstico opcional */
+    details.diagnostics { margin-left: 8px; }
+    details.diagnostics summary { cursor: pointer; color: var(--muted); }
+    details.diagnostics pre { background: var(--chip); padding: 6px; border-radius: 8px; overflow: auto; }
   </style>
 </head>
 <body>
@@ -134,6 +132,10 @@
       </div>
       <div class="row">
         <span id="loadStatus" class="chip">Cargando datos…</span>
+        <details class="diagnostics">
+          <summary>Diagnóstico</summary>
+          <pre id="diagBox">—</pre>
+        </details>
         <button id="themeToggle" class="btn">Modo oscuro</button>
       </div>
     </header>
@@ -256,11 +258,10 @@
     // =============================
     // UTILIDADES GENERALES
     // =============================
-
-    const ANN_FACTOR = Math.sqrt(252); // anualización a partir de std diaria
+    const ANN_FACTOR = Math.sqrt(252);
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot","usdjpy_spot","Duracion"]);
 
-    // Mapeo de tickers -> AssetName (para que coincida con gaps) y categoría (bloque)
+    // Mapeo de tickers -> AssetName + grupo
     const TICKER_MAP = {
       "us_index": { asset:"EE. UU.", group:"RV" },
       "eu_index": { asset:"Europa", group:"RV" },
@@ -285,7 +286,6 @@
 
       "eurusd": { asset:"EURUSD", group:"FX" },
       "usdjpy": { asset:"USDYEN", group:"FX" },
-      // Ignorados explícitos arriba como *_spot y Duracion
     };
 
     const ASSETS_BY_GROUP = {
@@ -295,27 +295,22 @@
     };
 
     function parseDate_DDMMYYYY(s) {
-      // Espera formato DD/MM/YYYY
-      const [dd, mm, yyyy] = (s || "").split("/");
-      const d = new Date(Date.UTC(Number(yyyy), Number(mm)-1, Number(dd)));
-      return d;
+      const str = (s || "").trim();
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
+      if (!m) return new Date(NaN);
+      const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+      return new Date(Date.UTC(yyyy, mm-1, dd));
     }
     function toISODate(d) {
       return d.toISOString().slice(0,10);
     }
-    function fmtPct(x, digits=2) {
-      if (!isFinite(x)) return "—";
-      return (x*100).toFixed(digits) + "%";
-    }
-    function fmtNum(x, digits=6) {
-      if (!isFinite(x)) return "—";
-      return x.toFixed(digits);
-    }
+    function fmtPct(x, digits=2) { return isFinite(x) ? (x*100).toFixed(digits) + "%" : "—"; }
+    function fmtNum(x, digits=6) { return isFinite(x) ? x.toFixed(digits) : "—"; }
 
-    // CSV parser robusto: ;, BOM, campos entre comillas, ; finales
+    // CSV parser robusto: ;, BOM, comillas, ; finales
     function parseCSV(text, delimiter=";") {
       const cleaned = text.replace(/^\uFEFF/, "");
-      const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length>0);
+      const lines = cleaned.split(/\r?\n/).filter(l => l.length>0);
       if (lines.length === 0) return { headers:[], rows:[] };
 
       const parseLine = (line) => {
@@ -325,14 +320,10 @@
         for (let i=0; i<line.length; i++) {
           const ch = line[i];
           if (ch === '"') {
-            if (inQuotes && line[i+1] === '"') { // escape ""
-              cur += '"'; i++;
-            } else {
-              inQuotes = !inQuotes;
-            }
+            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+            else { inQuotes = !inQuotes; }
           } else if (ch === delimiter && !inQuotes) {
-            out.push(cur);
-            cur = "";
+            out.push(cur); cur = "";
           } else {
             cur += ch;
           }
@@ -342,17 +333,13 @@
       };
 
       let headers = parseLine(lines[0]);
-      // elimina header vacío al final si viene con ; extra
       if (headers.length && headers[headers.length-1] === "") headers.pop();
 
       const rows = [];
       for (let i=1; i<lines.length; i++) {
         const parts = parseLine(lines[i]);
-        // rellena o recorta para igualar longitud de headers
         const obj = {};
-        for (let j=0; j<headers.length; j++) {
-          obj[headers[j]] = (parts[j] ?? "").trim();
-        }
+        for (let j=0; j<headers.length; j++) obj[headers[j]] = (parts[j] ?? "").trim();
         rows.push(obj);
       }
       return { headers, rows };
@@ -366,48 +353,55 @@
       return isNaN(x) ? NaN : x;
     }
 
-    // =============================
-    // ESTADO DE LA APLICACIÓN
-    // =============================
+    // Diagnóstico helpers
+    function setStatus(text) { document.getElementById('loadStatus').textContent = text; }
+    function appendDiag(msgObj) {
+      const pre = document.getElementById('diagBox');
+      const line = (typeof msgObj === 'string') ? msgObj : JSON.stringify(msgObj, null, 2);
+      pre.textContent = (pre.textContent === "—" ? "" : pre.textContent + "\n") + line;
+      console.log("[Diag]", msgObj);
+    }
 
+    // =============================
+    // ESTADO
+    // =============================
     const state = {
       theme: "light",
-      dates: [],           // fechas comunes (Date[])
-      isoDates: [],        // YYYY-MM-DD[]
-      // precios y retornos
-      returnsByAsset: {},  // assetName -> Float64Array of daily returns (NaN in first)
-      groupsByAsset: {},   // assetName -> "RV"/"RF"/"FX"
-      // gaps por vector
-      vectors: {},         // vectorName -> { gapsByAsset: {assetName -> Float64Array} }
+      dates: [],
+      isoDates: [],
+      returnsByAsset: {},
+      groupsByAsset: {},
+      vectors: {},
       vectorNames: [],
-
-      // resultados precomputados
-      perVector: {},       // vectorName -> { alpha: Float64Array, compDaily: {alloc, selRV, selRF, fx}, contribByAssetDaily }
-
-      // selección UI
+      perVector: {},
       selectedVectors: [],
       focusVector: null,
-
-      // ventana
       dateFrom: null,
       dateTo: null,
     };
 
     // =============================
-    // CARGA Y PARSING DE CSV
+    // CARGA (con timeout y no-store)
     // =============================
+    function fetchWithTimeout(url, ms = 30000) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
+        .finally(() => clearTimeout(t));
+    }
 
     async function loadCSVFiles() {
-      const [trText, gpText] = await Promise.all([
-        fetch("trackrecord.csv").then(r => {
-          if (!r.ok) throw new Error("Error cargando trackrecord.csv (HTTP " + r.status + ")");
-          return r.text();
-        }),
-        fetch("gaps.csv").then(r => {
-          if (!r.ok) throw new Error("Error cargando gaps.csv (HTTP " + r.status + ")");
-          return r.text();
-        })
-      ]);
+      setStatus("Cargando trackrecord.csv…");
+      const trResp = await fetchWithTimeout("trackrecord.csv");
+      if (!trResp.ok) throw new Error("Error cargando trackrecord.csv (HTTP " + trResp.status + ")");
+      const trText = await trResp.text();
+      appendDiag({trackrecord_size: trText.length});
+
+      setStatus("Cargando gaps.csv…");
+      const gpResp = await fetchWithTimeout("gaps.csv");
+      if (!gpResp.ok) throw new Error("Error cargando gaps.csv (HTTP " + gpResp.status + ")");
+      const gpText = await gpResp.text();
+      appendDiag({gaps_size: gpText.length});
 
       const track = parseCSV(trText, ";");
       const gaps = parseCSV(gpText, ";");
@@ -415,38 +409,39 @@
       if (track.headers.length === 0) throw new Error("trackrecord.csv vacío o sin headers");
       if (gaps.headers.length === 0) throw new Error("gaps.csv vacío o sin headers");
 
-      // Parseo de fechas
+      appendDiag({track_headers: track.headers});
+      appendDiag({gaps_headers_count: gaps.headers.length});
+
+      // --- fechas ---
       const trDateCol = track.headers[0];
       const gpDateCol = gaps.headers[0];
 
       const trDates = track.rows.map(r => parseDate_DDMMYYYY(r[trDateCol]));
       const gpDates = gaps.rows.map(r => parseDate_DDMMYYYY(r[gpDateCol]));
+      // Validamos que no haya "Invalid Date" antes de toISOString
+      if (trDates.some(d => isNaN(d))) throw new Error("Fecha inválida en trackrecord.csv. Formato requerido: DD/MM/YYYY");
+      if (gpDates.some(d => isNaN(d))) throw new Error("Fecha inválida en gaps.csv. Formato requerido: DD/MM/YYYY");
+
       const trISO = trDates.map(toISODate);
       const gpISO = gpDates.map(toISODate);
 
-      // Intersección de fechas, manteniendo orden ascendente de trackrecord
+      appendDiag({track_rows: track.rows.length, gaps_rows: gaps.rows.length});
+      appendDiag({track_date_min: trISO[0], track_date_max: trISO[trISO.length-1]});
+      appendDiag({gaps_date_min: gpISO[0], gaps_date_max: gpISO[gpISO.length-1]});
+
+      // Intersección (orden de trackrecord)
       const setGP = new Set(gpISO);
       const common = [];
-      for (let i=0; i<trISO.length; i++) {
-        const d = trISO[i];
-        if (setGP.has(d)) common.push(d);
-      }
+      for (let i=0; i<trISO.length; i++) if (setGP.has(trISO[i])) common.push(trISO[i]);
       if (common.length === 0) throw new Error("No hay fechas comunes entre trackrecord y gaps");
 
-      // Unicidad
-      const uniq = Array.from(new Set(common));
-      if (uniq.length !== common.length) {
-        console.warn("Fechas duplicadas en datos comunes; se tomarán únicas en el orden encontrado.");
-      }
-      const commonISO = uniq;
+      const commonISO = Array.from(new Set(common)); // unicidad manteniendo orden
       const commonDateObjs = commonISO.map(s => new Date(s+"T00:00:00Z"));
 
-      // Índices de mapeo
       const idxTR = new Map(trISO.map((d,i) => [d, i]));
       const idxGP = new Map(gpISO.map((d,i) => [d, i]));
 
       // --- TRACKRECORD: precios -> retornos ---
-      // Filtramos columnas válidas según mapping y no ignoradas
       const validTickers = track.headers.slice(1).filter(h => TICKER_MAP[h] && !IGNORED_TRACK_COLS.has(h));
       const returnsByAsset = {};
       const groupsByAsset = {};
@@ -458,9 +453,8 @@
           const r = track.rows[idxTR.get(commonISO[k])];
           prices[k] = toNumberCell(r[tk]);
         }
-        // Retornos simples
         const rets = new Float64Array(commonISO.length);
-        rets[0] = NaN; // primera fila debe producir NaN en alpha
+        rets[0] = NaN;
         for (let k=1; k<commonISO.length; k++) {
           const p0 = prices[k-1], p1 = prices[k];
           rets[k] = (isFinite(p0) && isFinite(p1) && p0 !== 0) ? (p1/p0 - 1) : 0;
@@ -468,10 +462,9 @@
         returnsByAsset[asset] = rets;
       });
 
-      // --- GAPS: pbs -> proporción; columnas formateadas Asset_Vector ---
-      const vectorCols = gaps.headers.slice(1); // todas menos fecha
-      const vectors = {}; // vectorName -> { gapsByAsset: {asset -> array} }
-
+      // --- GAPS ---
+      const vectorCols = gaps.headers.slice(1);
+      const vectors = {};
       for (const col of vectorCols) {
         if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
@@ -486,59 +479,61 @@
         const arr = new Float64Array(commonISO.length);
         for (let k=0; k<commonISO.length; k++) {
           const r = gaps.rows[idxGP.get(commonISO[k])];
-          const v = toNumberCell(r[col]); // en pbs
-          arr[k] = isFinite(v) ? (v / 10000) : 0; // convertir a proporción
+          const v = toNumberCell(r[col]);
+          arr[k] = isFinite(v) ? (v/10000) : 0;
         }
         vectors[vectorName].gapsByAsset[assetName] = arr;
       }
 
-      // Guardar en estado
+      // Guardamos en estado
       state.dates = commonDateObjs;
       state.isoDates = commonISO;
       state.returnsByAsset = returnsByAsset;
       state.groupsByAsset = groupsByAsset;
       state.vectors = vectors;
       state.vectorNames = Object.keys(vectors).sort((a,b)=>a.localeCompare(b,'es'));
+
+      // Diagnóstico visible
+      document.getElementById('dateCount').textContent = commonISO.length;
+      document.getElementById('assetCount').textContent = Object.keys(returnsByAsset).length;
+      document.getElementById('vectorCount').textContent = state.vectorNames.length;
+
+      appendDiag({
+        common_dates: commonISO.length,
+        assets_with_returns: Object.keys(returnsByAsset),
+        vectors_detected: state.vectorNames.slice(0, 10),
+      });
     }
 
     // =============================
     // PRE-CÁLCULOS (ALPHA, COMP, CONTRIB)
     // =============================
-
     function precomputeAll() {
       const N = state.isoDates.length;
       const perVector = {};
       const RVset = new Set(ASSETS_BY_GROUP.RV);
       const RFset = new Set(ASSETS_BY_GROUP.RF);
       const FXset = new Set(ASSETS_BY_GROUP.FX);
-
-      // Para robustez, lista de todos los assets con retornos disponibles (por grupo)
       const allAssetsWithReturns = Object.keys(state.returnsByAsset);
 
       for (const vName of state.vectorNames) {
         const gapsByAsset = state.vectors[vName].gapsByAsset;
-        // Prepara contenedores
         const alpha = new Float64Array(N);
         const compAlloc = new Float64Array(N);
         const compSelRV = new Float64Array(N);
         const compSelRF = new Float64Array(N);
         const compFX   = new Float64Array(N);
-        const contribByAssetDaily = {}; // asset -> Float64Array
-        // Solo assets que aparezcan en gaps del vector
+        const contribByAssetDaily = {};
         const assetsForVector = Object.keys(gapsByAsset);
-        for (const a of assetsForVector) {
-          contribByAssetDaily[a] = new Float64Array(N);
-        }
+        for (const a of assetsForVector) contribByAssetDaily[a] = new Float64Array(N);
 
         for (let t=0; t<N; t++) {
-          // Sumas de grupo
           let G_RV = 0, G_RF = 0;
           let nRV = 0, nRF = 0;
           let sumRetRV = 0, cntRetRV = 0;
           let sumRetRF = 0, cntRetRF = 0;
           let fxContrib = 0;
 
-          // Equal-weight de retornos por bloque usando TODOS los assets con retorno
           for (const a of allAssetsWithReturns) {
             const ret = state.returnsByAsset[a]?.[t];
             if (!isFinite(ret)) continue;
@@ -548,28 +543,18 @@
           const ewRV = cntRetRV>0 ? (sumRetRV / cntRetRV) : 0;
           const ewRF = cntRetRF>0 ? (sumRetRF / cntRetRF) : 0;
 
-          // Recorremos SOLO assets con gaps del vector (contribuciones reales)
           for (const a of assetsForVector) {
             const gap = gapsByAsset[a]?.[t] ?? 0;
             const ret = state.returnsByAsset[a]?.[t];
-            const group = state.groupsByAsset[a] ?? (
-              FXset.has(a) ? "FX" : (RVset.has(a) ? "RV" : (RFset.has(a) ? "RF" : "UNK"))
-            );
-
-            // contribución directa
+            const group = state.groupsByAsset[a] ?? (FXset.has(a) ? "FX" : (RVset.has(a) ? "RV" : (RFset.has(a) ? "RF" : "UNK")));
             const c = (isFinite(gap) && isFinite(ret)) ? (gap * ret) : 0;
             contribByAssetDaily[a][t] = c;
-
-            // acumuladores de grupo para allocation/selection
             if (group === "RV") { G_RV += (isFinite(gap)?gap:0); nRV++; }
             else if (group === "RF") { G_RF += (isFinite(gap)?gap:0); nRF++; }
             else if (group === "FX") { fxContrib += c; }
           }
 
-          // Allocation: reasignar equitativamente dentro de cada bloque RV/RF
           const alloc = (G_RV * ewRV) + (G_RF * ewRF);
-
-          // Selection dentro de cada bloque: diferencia respecto a equal-weight
           let selRV = 0, selRF = 0;
           const eqRV = (nRV>0 ? G_RV / nRV : 0);
           const eqRF = (nRF>0 ? G_RF / nRF : 0);
@@ -598,12 +583,12 @@
       }
 
       state.perVector = perVector;
+      appendDiag({precompute_done_for_vectors: state.vectorNames.length});
     }
 
     // =============================
-    // MÉTRICAS Y CÁLCULOS DE VENTANA
+    // MÉTRICAS
     // =============================
-
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
       for (let i=0; i<dates.length; i++) {
@@ -612,22 +597,17 @@
       }
       return idx;
     }
-
     function idxWindowByKey(key) {
       const dates = state.dates;
       const last = dates[dates.length-1];
-      let from = null;
-      let to = last;
-
+      let from = null, to = last;
       const addMonths = (date, m) => {
         const d = new Date(date.getTime());
         const origD = d.getUTCDate();
         d.setUTCMonth(d.getUTCMonth() + m);
-        // Ajuste para fin de mes
         if (d.getUTCDate() !== origD) d.setUTCDate(0);
         return d;
       };
-
       switch (key) {
         case "1M": from = addMonths(last, -1); break;
         case "3M": from = addMonths(last, -3); break;
@@ -642,28 +622,21 @@
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
     }
-
     function vectorSubarrayByIdx(typedArr, idxs) {
       const out = new Float64Array(idxs.length);
       for (let k=0; k<idxs.length; k++) out[k] = typedArr[idxs[k]];
       return out;
     }
-
     function cumulativeSum(arr) {
       const out = new Float64Array(arr.length);
       let acc = 0;
       for (let i=0; i<arr.length; i++) {
         const v = arr[i];
-        if (isFinite(v)) {
-          acc += v;
-          out[i] = acc;
-        } else {
-          out[i] = NaN;
-        }
+        if (isFinite(v)) { acc += v; out[i] = acc; }
+        else out[i] = NaN;
       }
       return out;
     }
-
     function drawdownFromCumulative(cum) {
       const out = new Float64Array(cum.length);
       let peak = -Infinity;
@@ -671,43 +644,27 @@
         const v = cum[i];
         if (!isFinite(v)) { out[i] = NaN; continue; }
         peak = Math.max(peak, v);
-        out[i] = v - peak; // drawdown absoluto (negativo o 0)
+        out[i] = v - peak;
       }
       return out;
     }
-
-    function arrayMean(arr) {
-      let s=0, c=0;
-      for (const v of arr) { if (isFinite(v)) { s+=v; c++; } }
-      return c>0 ? s/c : NaN;
-    }
+    function arrayMean(arr) { let s=0,c=0; for (const v of arr) if (isFinite(v)) { s+=v; c++; } return c? s/c : NaN; }
     function arrayStd(arr) {
-      const m = arrayMean(arr);
-      if (!isFinite(m)) return NaN;
-      let s=0, c=0;
-      for (const v of arr) { if (isFinite(v)) { const d=v-m; s += d*d; c++; } }
+      const m = arrayMean(arr); if (!isFinite(m)) return NaN;
+      let s=0,c=0; for (const v of arr) if (isFinite(v)) { const d=v-m; s+=d*d; c++; }
       return c>1 ? Math.sqrt(s/(c-1)) : NaN;
     }
     function downsideStd(arr) {
       const neg = arr.filter(v => isFinite(v) && v<0);
       if (neg.length<=1) return NaN;
-      const m = 0;
-      let s=0;
-      for (const v of neg) { const d=v-m; s += d*d; }
+      let s=0; for (const v of neg) s += v*v;
       return Math.sqrt(s/(neg.length-1));
     }
-
     function maxDrawdown(cum) {
       let peak = -Infinity, maxDD = 0;
-      for (const v of cum) {
-        if (!isFinite(v)) continue;
-        peak = Math.max(peak, v);
-        const dd = peak - v; // magnitud positiva
-        if (dd > maxDD) maxDD = dd;
-      }
-      return -maxDD; // devolver negativo para consistencia
+      for (const v of cum) { if (!isFinite(v)) continue; peak = Math.max(peak, v); maxDD = Math.max(maxDD, peak - v); }
+      return -maxDD;
     }
-
     function metricsForSeries(alphaWindow) {
       const cum = cumulativeSum(alphaWindow);
       const vol = arrayStd(alphaWindow);
@@ -716,20 +673,15 @@
       const annVol = isFinite(vol) ? vol * ANN_FACTOR : NaN;
       const IR = (isFinite(mu)&&isFinite(vol)&&vol>0) ? (mu/vol)*ANN_FACTOR : NaN;
       const Sortino = (isFinite(mu)&&isFinite(dstd)&&dstd>0) ? (mu/dstd)*ANN_FACTOR : NaN;
-      const hit = (() => {
-        let pos=0, c=0;
-        for (const v of alphaWindow) { if (isFinite(v)) { if (v>0) pos++; c++; } }
-        return c>0 ? (pos/c) : NaN;
-      })();
+      const hit = (() => { let pos=0,c=0; for (const v of alphaWindow) if (isFinite(v)) { if (v>0) pos++; c++; } return c? (pos/c) : NaN; })();
       const MDD = maxDrawdown(cum);
       const total = cum[cum.length-1];
       return { total, annVol, IR, Sortino, hit, MDD };
     }
 
     // =============================
-    // VISUALIZACIÓN (Plotly)
+    // PLOTLY (render)
     // =============================
-
     function baseLayout(title="") {
       return {
         title: { text: title, font: { size: 12 }, x: 0, xanchor: 'left' },
@@ -738,48 +690,26 @@
         font: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() },
         margin: { l: 50, r: 20, t: 30, b: 40 },
         hovermode: 'x unified',
-        xaxis: {
-          showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(),
-          zeroline: false
-        },
-        yaxis: {
-          showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(),
-          zeroline: true, zerolinecolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim()
-        },
-        showlegend: true,
-        legend: { orientation: 'h', x: 0, y: 1.1 }
+        xaxis: { showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(), zeroline: false },
+        yaxis: { showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(), zeroline: true, zerolinecolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() },
+        showlegend: true, legend: { orientation: 'h', x: 0, y: 1.1 }
       };
     }
-
     function palette(i) {
-      const colors = [
-        "#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2",
-        "#ca8a04","#ef4444","#22c55e","#60a5fa","#f472b6","#84cc16"
-      ];
+      const colors = ["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2","#ca8a04","#ef4444","#22c55e","#60a5fa","#f472b6","#84cc16"];
       return colors[i % colors.length];
     }
-
     function currentWindowIdxs() {
-      if (state.dateFrom || state.dateTo) {
-        return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
-      }
+      if (state.dateFrom || state.dateTo) return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
       return idxWindowByKey("ALL");
     }
-
-    function selectedVectorsList() {
-      return state.selectedVectors.length ? state.selectedVectors : [];
-    }
+    function selectedVectorsList() { return state.selectedVectors.length ? state.selectedVectors : []; }
 
     function plotCumulative() {
-      const container = 'chartCumulative';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
+      if (!window.Plotly) { console.warn("Plotly no está cargado"); return; }
       const idxs = currentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
-
       const sel = selectedVectorsList();
       for (let i=0;i<sel.length;i++) {
         const v = sel[i];
@@ -787,266 +717,138 @@
         const aw = vectorSubarrayByIdx(alpha, idxs);
         const cum = cumulativeSum(aw);
         traces.push({
-          type: 'scatter',
-          mode: 'lines',
-          name: v,
-          x, y: cum,
+          type: 'scatter', mode: 'lines', name: v, x, y: cum,
           line: { color: palette(i), width: 2 },
           hovertemplate: '%{x|%d-%m-%Y}<br>Alpha diario: %{customdata[0]:.6f}<br>Cumul.: %{y:.6f}<extra>'+v+'</extra>',
-          customdata: Array.from(aw).map(a => isFinite(a)?a:NaN).map(a => [a]) // matriz para customdata[0]
+          customdata: Array.from(aw).map(a => [isFinite(a)?a:NaN])
         });
       }
-
       const layout = baseLayout('');
       layout.yaxis.title = 'Alpha acumulado';
-      Plotly.react(container, traces, layout, {displayModeBar: false, responsive: true});
+      Plotly.react('chartCumulative', traces, layout, {displayModeBar: false, responsive: true});
     }
-
     function plotDrawdown() {
-      const container = 'chartDrawdown';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
+      if (!window.Plotly) return;
       const idxs = currentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
       const sel = selectedVectorsList();
-
       for (let i=0;i<sel.length;i++) {
         const v = sel[i];
-        const alpha = state.perVector[v].alpha;
-        const aw = vectorSubarrayByIdx(alpha, idxs);
-        const cum = cumulativeSum(aw);
-        const dd = drawdownFromCumulative(cum);
-        traces.push({
-          type: 'scatter', mode: 'lines', name: v, x, y: dd,
-          line: { color: palette(i), width: 2 },
-          hovertemplate: '%{x|%d-%m-%Y}<br>Drawdown: %{y:.6f}<extra>'+v+'</extra>'
-        });
+        const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
+        const dd = drawdownFromCumulative(cumulativeSum(aw));
+        traces.push({ type: 'scatter', mode: 'lines', name: v, x, y: dd, line: { color: palette(i), width: 2 },
+          hovertemplate: '%{x|%d-%m-%Y}<br>Drawdown: %{y:.6f}<extra>'+v+'</extra>' });
       }
-
-      const layout = baseLayout('');
-      layout.yaxis.title = 'Drawdown (acumulado desde pico)';
-      Plotly.react(container, traces, layout, {displayModeBar: false, responsive: true});
+      const layout = baseLayout(''); layout.yaxis.title = 'Drawdown (desde pico)';
+      Plotly.react('chartDrawdown', traces, layout, {displayModeBar: false, responsive: true});
     }
-
     function aggregateContribByAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const agg = {};
       for (const a of Object.keys(daily)) {
-        let s=0;
-        for (const i of idxs) {
-          const v = daily[a][i];
-          if (isFinite(v)) s += v;
-        }
+        let s=0; for (const i of idxs) { const v = daily[a][i]; if (isFinite(v)) s += v; }
         agg[a] = s;
       }
       return agg;
     }
-
     function plotWaterfall() {
-      const container = 'chartWaterfall';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
-      const v = state.focusVector;
-      if (!v || !state.perVector[v]) {
-        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
-        return;
-      }
+      if (!window.Plotly) return;
+      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartWaterfall', [], baseLayout('')); return; }
       const idxs = currentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-
-      // Orden por grupo y nombre
-      const orderAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX]
-        .filter(a => a in agg);
-
+      const orderAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX].filter(a => a in agg);
       const x = orderAssets.slice();
       const y = orderAssets.map(a => agg[a]);
       const measures = new Array(x.length).fill('relative');
-
-      // Agregar total al final
-      x.push("Total");
-      const total = y.reduce((s,v)=>s+v,0);
-      y.push(total);
-      measures.push('total');
-
+      x.push("Total"); const total = y.reduce((s,v)=>s+v,0); y.push(total); measures.push('total');
       const trace = {
-        type: 'waterfall',
-        x, y, measure: measures,
-        text: y.map((v)=> fmtNum(v,6)),
-        textposition: 'outside',
-        connector: { line: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() } },
-        decreasing: { marker: { color: '#ef4444' } },
-        increasing: { marker: { color: '#16a34a' } },
-        totals: { marker: { color: '#2563eb' } },
+        type:'waterfall', x, y, measure: measures,
+        text: y.map(v => fmtNum(v,6)), textposition:'outside',
+        connector:{ line:{ color:getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() }},
+        decreasing:{ marker:{ color:'#ef4444' }}, increasing:{ marker:{ color:'#16a34a' }}, totals:{ marker:{ color:'#2563eb' }},
         hovertemplate: '%{x}<br>Contribución: %{y:.6f}<extra></extra>'
       };
-
-      const layout = baseLayout('');
-      layout.showlegend = false;
-      layout.yaxis.title = 'Contribución acumulada';
+      const layout = baseLayout(''); layout.showlegend=false; layout.yaxis.title='Contribución acumulada';
       document.getElementById('wfVector').textContent = `Vector: ${v}`;
-      Plotly.react(container, [trace], layout, {displayModeBar: false, responsive: true});
+      Plotly.react('chartWaterfall', [trace], layout, {displayModeBar:false, responsive:true});
     }
-
     function plotDecomposition() {
-      const container = 'chartDecomposition';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
+      if (!window.Plotly) return;
       const idxs = currentWindowIdxs();
       const sel = selectedVectorsList();
-      if (!sel.length) {
-        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
-        return;
-      }
-
-      // Para cada vector, sumamos componentes en ventana
+      if (!sel.length) { Plotly.react('chartDecomposition', [], baseLayout('')); return; }
       const components = sel.map(v => {
-        const comp = state.perVector[v].compDaily;
-        const sumAlloc = idxs.reduce((s,i)=> s + (isFinite(comp.alloc[i])?comp.alloc[i]:0), 0);
-        const sumSelRV = idxs.reduce((s,i)=> s + (isFinite(comp.selRV[i])?comp.selRV[i]:0), 0);
-        const sumSelRF = idxs.reduce((s,i)=> s + (isFinite(comp.selRF[i])?comp.selRF[i]:0), 0);
-        const sumFX   = idxs.reduce((s,i)=> s + (isFinite(comp.fx[i])?comp.fx[i]:0), 0);
-        return { v, sumAlloc, sumSelRV, sumSelRF, sumFX };
+        const c = state.perVector[v].compDaily;
+        const sA = idxs.reduce((s,i)=> s + (isFinite(c.alloc[i])?c.alloc[i]:0), 0);
+        const sRV = idxs.reduce((s,i)=> s + (isFinite(c.selRV[i])?c.selRV[i]:0), 0);
+        const sRF = idxs.reduce((s,i)=> s + (isFinite(c.selRF[i])?c.selRF[i]:0), 0);
+        const sFX = idxs.reduce((s,i)=> s + (isFinite(c.fx[i])?c.fx[i]:0), 0);
+        return { v, sA, sRV, sRF, sFX };
       });
-
       const x = components.map(c => c.v);
-      const trAlloc = { type:'bar', name:'Allocation', x, y: components.map(c=>c.sumAlloc), marker:{color:'#60a5fa'}, hovertemplate:'Allocation: %{y:.6f}<extra></extra>' };
-      const trSelRV = { type:'bar', name:'Selection RV', x, y: components.map(c=>c.sumSelRV), marker:{color:'#34d399'}, hovertemplate:'Selection RV: %{y:.6f}<extra></extra>' };
-      const trSelRF = { type:'bar', name:'Selection RF', x, y: components.map(c=>c.sumSelRF), marker:{color:'#f59e0b'}, hovertemplate:'Selection RF: %{y:.6f}<extra></extra>' };
-      const trFX    = { type:'bar', name:'FX',          x, y: components.map(c=>c.sumFX),    marker:{color:'#a78bfa'}, hovertemplate:'FX: %{y:.6f}<extra></extra>' };
-
-      const layout = baseLayout('');
-      layout.barmode = 'stack';
-      layout.yaxis.title = 'Contribución acumulada';
-      Plotly.react(container, [trAlloc, trSelRV, trSelRF, trFX], layout, {displayModeBar:false, responsive:true});
+      const trAlloc = { type:'bar', name:'Allocation', x, y: components.map(c=>c.sA),  marker:{color:'#60a5fa'}, hovertemplate:'Allocation: %{y:.6f}<extra></extra>' };
+      const trSelRV = { type:'bar', name:'Selection RV', x, y: components.map(c=>c.sRV), marker:{color:'#34d399'}, hovertemplate:'Selection RV: %{y:.6f}<extra></extra>' };
+      const trSelRF = { type:'bar', name:'Selection RF', x, y: components.map(c=>c.sRF), marker:{color:'#f59e0b'}, hovertemplate:'Selection RF: %{y:.6f}<extra></extra>' };
+      const trFX    = { type:'bar', name:'FX',          x, y: components.map(c=>c.sFX), marker:{color:'#a78bfa'}, hovertemplate:'FX: %{y:.6f}<extra></extra>' };
+      const layout = baseLayout(''); layout.barmode='stack'; layout.yaxis.title='Contribución acumulada';
+      Plotly.react('chartDecomposition', [trAlloc, trSelRV, trSelRF, trFX], layout, {displayModeBar:false, responsive:true});
     }
-
     function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
-      const monthKeys = []; // en orden
-      const keyToIdx = new Map();
-      const assetList = [...new Set(Object.keys(daily))];
-
-      // Construir claves YYYY-MM en orden a partir de idxs
+      const monthKeys = []; const keyToIdx = new Map();
       for (const i of idxs) {
         const d = state.dates[i];
         const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
-        if (!keyToIdx.has(key)) {
-          keyToIdx.set(key, monthKeys.length);
-          monthKeys.push(key);
-        }
+        if (!keyToIdx.has(key)) { keyToIdx.set(key, monthKeys.length); monthKeys.push(key); }
       }
-
-      // Matriz asset x month
+      const assetList = Object.keys(daily);
       const orderedAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX].filter(a => assetList.includes(a));
       const Z = orderedAssets.map(_ => new Array(monthKeys.length).fill(0));
-
       for (let ai=0; ai<orderedAssets.length; ai++) {
-        const a = orderedAssets[ai];
-        const arr = daily[a];
-        if (!arr) continue;
+        const a = orderedAssets[ai]; const arr = daily[a]; if (!arr) continue;
         for (const i of idxs) {
           const d = state.dates[i];
           const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
           const mj = keyToIdx.get(key);
-          const v = arr[i];
-          if (isFinite(v)) Z[ai][mj] += v;
+          const v = arr[i]; if (isFinite(v)) Z[ai][mj] += v;
         }
       }
-
       return { x: monthKeys, y: orderedAssets, z: Z };
     }
-
     function plotHeatmap() {
-      const container = 'chartHeatmap';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
-      const v = state.focusVector;
-      if (!v || !state.perVector[v]) {
-        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
-        return;
-      }
+      if (!window.Plotly) return;
+      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartHeatmap', [], baseLayout('')); return; }
       const idxs = currentWindowIdxs();
       const { x, y, z } = groupContribByMonthAndAsset(v, idxs);
-      const trace = {
-        type: 'heatmap',
-        x, y, z,
-        colorscale: [
-          [0, '#1f2937'], [0.5, '#60a5fa'], [1, '#16a34a']
-        ],
-        colorbar: { title: 'Contribución' },
-        hovertemplate: 'Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.6f}<extra></extra>'
-      };
-      const layout = baseLayout('');
-      layout.xaxis.type = 'category';
-      layout.yaxis.type = 'category';
-      layout.yaxis.autorange = 'reversed';
-      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
+      const trace = { type:'heatmap', x, y, z, colorscale: [[0,'#1f2937'],[0.5,'#60a5fa'],[1,'#16a34a']],
+        colorbar:{title:'Contribución'}, hovertemplate:'Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.6f}<extra></extra>' };
+      const layout = baseLayout(''); layout.xaxis.type='category'; layout.yaxis.type='category'; layout.yaxis.autorange='reversed';
+      Plotly.react('chartHeatmap', [trace], layout, {displayModeBar:false, responsive:true});
     }
-
     function plotBars() {
-      const container = 'chartBars';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
-      const v = state.focusVector;
-      if (!v || !state.perVector[v]) {
-        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
-        return;
-      }
+      if (!window.Plotly) return;
+      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartBars', [], baseLayout('')); return; }
       const idxs = currentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-
       const orderedAssets = Object.keys(agg).sort((a,b)=> agg[b]-agg[a]);
-      const x = orderedAssets;
-      const y = orderedAssets.map(a => agg[a]);
+      const x = orderedAssets; const y = orderedAssets.map(a => agg[a]);
       const colors = y.map(val => val>=0 ? '#16a34a' : '#ef4444');
-
       const trace = { type:'bar', x, y, marker:{color: colors}, hovertemplate:'%{x}<br>Contribución: %{y:.6f}<extra></extra>' };
-      const layout = baseLayout('');
-      layout.xaxis.title = 'Asset class';
-      layout.yaxis.title = 'Contribución acumulada';
-      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
+      const layout = baseLayout(''); layout.xaxis.title='Asset class'; layout.yaxis.title='Contribución acumulada';
+      Plotly.react('chartBars', [trace], layout, {displayModeBar:false, responsive:true});
     }
-
     function plotHist() {
-      const container = 'chartHist';
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado, no se puede graficar:", container);
-        return;
-      }
-      const v = state.focusVector;
-      if (!v || !state.perVector[v]) {
-        Plotly.react(container, [], baseLayout(''), {displayModeBar:false, responsive:true});
-        return;
-      }
+      if (!window.Plotly) return;
+      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartHist', [], baseLayout('')); return; }
       const idxs = currentWindowIdxs();
-      const alpha = state.perVector[v].alpha;
-      const aw = vectorSubarrayByIdx(alpha, idxs);
+      const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
       const arr = Array.from(aw).filter(x => isFinite(x));
-
-      const trace = {
-        type: 'histogram',
-        x: arr,
-        nbinsx: Math.min(50, Math.max(10, Math.floor(Math.sqrt(arr.length)))),
-        marker: { color: '#60a5fa' },
-        hovertemplate: 'Alpha: %{x:.6f}<br>Frecuencia: %{y}<extra></extra>'
-      };
-      const layout = baseLayout('');
-      layout.xaxis.title = 'Alpha diario';
-      layout.yaxis.title = 'Frecuencia';
-      Plotly.react(container, [trace], layout, {displayModeBar:false, responsive:true});
+      const trace = { type:'histogram', x: arr, nbinsx: Math.min(50, Math.max(10, Math.floor(Math.sqrt(arr.length)))), marker:{ color:'#60a5fa' },
+        hovertemplate:'Alpha: %{x:.6f}<br>Frecuencia: %{y}<extra></extra>' };
+      const layout = baseLayout(''); layout.xaxis.title='Alpha diario'; layout.yaxis.title='Frecuencia';
+      Plotly.react('chartHist', [trace], layout, {displayModeBar:false, responsive:true});
     }
-
     function updateMetrics() {
       const v = state.focusVector;
       if (!v || !state.perVector[v]) {
@@ -1060,27 +862,22 @@
         return;
       }
       const idxs = currentWindowIdxs();
-      const alpha = state.perVector[v].alpha;
-      const aw = vectorSubarrayByIdx(alpha, idxs);
+      const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
       const m = metricsForSeries(Array.from(aw).filter(x=>isFinite(x)));
-
       document.getElementById('mCumulative').textContent = fmtNum(m.total, 6);
       document.getElementById('mVol').textContent = fmtPct(m.annVol, 2);
       document.getElementById('mIR').textContent = isFinite(m.IR) ? m.IR.toFixed(2) : "—";
       document.getElementById('mSortino').textContent = isFinite(m.Sortino) ? m.Sortino.toFixed(2) : "—";
       document.getElementById('mHit').textContent = fmtPct(m.hit, 1);
       document.getElementById('mMDD').textContent = fmtNum(m.MDD, 6);
-
-      // resumen de fechas
       const df = state.dateFrom ? toISODate(state.dateFrom) : toISODate(state.dates[0]);
       const dt = state.dateTo ? toISODate(state.dateTo) : toISODate(state.dates[state.dates.length-1]);
       document.getElementById('dateSummary').textContent = `Ventana: ${df} → ${dt} (${idxs.length} días)`;
     }
-
     function renderAll() {
       if (!window.Plotly) {
-        console.warn("Plotly no está cargado. Revisa la etiqueta <script src=\"./plotly.min.js\"></script> y la ubicación del archivo.");
-        document.getElementById('loadStatus').textContent = "Plotly no cargado";
+        setStatus("Plotly no cargado");
+        appendDiag("Plotly no está disponible. Revisa <script src=\"./plotly.min.js\">.");
         return;
       }
       updateMetrics();
@@ -1096,108 +893,64 @@
     // =============================
     // UI / EVENTOS
     // =============================
-
     function initUI() {
-      // Poblado de vectores
       const vMulti = document.getElementById('vectorMulti');
       const vFocus = document.getElementById('vectorFocus');
 
       state.vectorNames.forEach(v => {
-        const opt1 = document.createElement('option');
-        opt1.value = v; opt1.textContent = v;
-        vMulti.appendChild(opt1);
-        const opt2 = document.createElement('option');
-        opt2.value = v; opt2.textContent = v;
-        vFocus.appendChild(opt2);
+        const opt1 = document.createElement('option'); opt1.value = v; opt1.textContent = v; vMulti.appendChild(opt1);
+        const opt2 = document.createElement('option'); opt2.value = v; opt2.textContent = v; vFocus.appendChild(opt2);
       });
 
-      // Selección por defecto
       const defaultSel = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       state.selectedVectors = defaultSel;
       state.focusVector = state.vectorNames[0] || null;
 
-      // Marcar seleccionados en el multiselect
-      for (const opt of vMulti.options) {
-        opt.selected = state.selectedVectors.includes(opt.value);
-      }
+      for (const opt of vMulti.options) opt.selected = state.selectedVectors.includes(opt.value);
       vFocus.value = state.focusVector || "";
 
-      // Fechas min/max
       const dFrom = document.getElementById('dateFrom');
       const dTo = document.getElementById('dateTo');
       const minISO = state.isoDates[0];
       const maxISO = state.isoDates[state.isoDates.length-1];
-      dFrom.min = minISO; dFrom.max = maxISO;
-      dTo.min = minISO; dTo.max = maxISO;
-      dFrom.value = ""; dTo.value = "";
+      dFrom.min = minISO; dFrom.max = maxISO; dTo.min = minISO; dTo.max = maxISO; dFrom.value = ""; dTo.value = "";
 
-      // Contadores
       document.getElementById('dateCount').textContent = state.isoDates.length;
       document.getElementById('assetCount').textContent = Object.keys(state.returnsByAsset).length;
       document.getElementById('vectorCount').textContent = state.vectorNames.length;
 
-      // Eventos
       vMulti.addEventListener('change', () => {
         const sel = Array.from(vMulti.selectedOptions).map(o=>o.value);
-        state.selectedVectors = sel;
-        renderAll();
+        state.selectedVectors = sel; renderAll();
       });
-      vFocus.addEventListener('change', () => {
-        state.focusVector = vFocus.value || null;
-        renderAll();
-      });
-
+      vFocus.addEventListener('change', () => { state.focusVector = vFocus.value || null; renderAll(); });
       document.getElementById('selectAll').addEventListener('click', () => {
-        state.selectedVectors = [...state.vectorNames];
-        for (const opt of vMulti.options) opt.selected = true;
-        renderAll();
+        state.selectedVectors = [...state.vectorNames]; for (const opt of vMulti.options) opt.selected = true; renderAll();
       });
       document.getElementById('selectNone').addEventListener('click', () => {
-        state.selectedVectors = [];
-        for (const opt of vMulti.options) opt.selected = false;
-        renderAll();
+        state.selectedVectors = []; for (const opt of vMulti.options) opt.selected = false; renderAll();
       });
 
       document.getElementById('quickRanges').addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-range]');
-        if (!btn) return;
-        const key = btn.getAttribute('data-range');
-        const idxs = idxWindowByKey(key);
-        // set state.dateFrom/To de acuerdo con idxs
-        const df = state.dates[idxs[0]];
-        const dt = state.dates[idxs[idxs.length-1]];
-        state.dateFrom = df; state.dateTo = dt;
-        const dFromEl = document.getElementById('dateFrom');
-        const dToEl = document.getElementById('dateTo');
-        dFromEl.value = toISODate(df);
-        dToEl.value = toISODate(dt);
-        renderAll();
+        const btn = e.target.closest('button[data-range]'); if (!btn) return;
+        const key = btn.getAttribute('data-range'); const idxs = idxWindowByKey(key);
+        const df = state.dates[idxs[0]], dt = state.dates[idxs[idxs.length-1]];
+        state.dateFrom = df; state.dateTo = dt; dFrom.value = toISODate(df); dTo.value = toISODate(dt); renderAll();
       });
-
       document.getElementById('applyDates').addEventListener('click', () => {
-        const dFromStr = document.getElementById('dateFrom').value;
-        const dToStr = document.getElementById('dateTo').value;
+        const dFromStr = dFrom.value; const dToStr = dTo.value;
         state.dateFrom = dFromStr ? new Date(dFromStr+"T00:00:00Z") : null;
         state.dateTo = dToStr ? new Date(dToStr+"T00:00:00Z") : null;
-        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) {
-          alert("Fecha desde no puede ser mayor que fecha hasta.");
-          return;
-        }
+        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) { alert("Fecha desde no puede ser mayor que fecha hasta."); return; }
         renderAll();
       });
-
       document.getElementById('resetDates').addEventListener('click', () => {
-        state.dateFrom = null; state.dateTo = null;
-        document.getElementById('dateFrom').value = "";
-        document.getElementById('dateTo').value = "";
-        renderAll();
+        state.dateFrom = null; state.dateTo = null; dFrom.value = ""; dTo.value = ""; renderAll();
       });
-
       document.getElementById('themeToggle').addEventListener('click', () => {
         state.theme = (state.theme === 'light' ? 'dark' : 'light');
         document.documentElement.setAttribute('data-theme', state.theme);
         document.getElementById('themeToggle').textContent = state.theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
-        // Re-render para colores
         renderAll();
       });
     }
@@ -1205,21 +958,21 @@
     // =============================
     // INICIALIZACIÓN
     // =============================
-
     (async function main() {
       try {
-        document.getElementById('loadStatus').textContent = "Cargando datos…";
+        setStatus("Cargando datos…");
         await loadCSVFiles();
-        document.getElementById('loadStatus').textContent = "Datos cargados ✓";
-
+        setStatus("Procesando…");
         precomputeAll();
         initUI();
         renderAll();
+        setStatus("Datos cargados ✓");
       } catch (err) {
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
-        document.getElementById('loadStatus').textContent = "Error cargando datos";
-        alert("Ocurrió un error al cargar o procesar los archivos CSV:\n\n" + msg + "\n\nRevisa la consola (F12) → pestaña Console, y Network para 404/errores.");
+        setStatus("Error cargando datos");
+        appendDiag({error: msg});
+        alert("Ocurrió un error al cargar o procesar los archivos CSV:\n\n" + msg + "\n\nRevisa la consola (F12) → Console y Network.");
       }
     })();
   </script>
