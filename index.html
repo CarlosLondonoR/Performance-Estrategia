@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Alpha Vectors</title>
+
+<script src="./plotly.min.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #f5f5f5;
+}
+
+.dark {
+    background: #1e1e1e;
+    color: white;
+}
+
+header {
+    padding: 10px 20px;
+    background: #222;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+}
+
+.container {
+    padding: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+#chart {
+    width: 100%;
+    height: 600px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>Alpha Dashboard</h2>
+    <button onclick="toggleTheme()">Modo oscuro</button>
+</header>
+
+<div class="container">
+
+    <div class="controls">
+        <label>Vectores:</label>
+        <select id="vectorSelect" multiple></select>
+    </div>
+
+    <div id="chart"></div>
+
+</div>
+
+<script>
+
+// ============================
+// CONFIG
+// ============================
+
+const GAP_FILE = "./gaps.csv";
+const PRICE_FILE = "./trackrecord.csv";
+
+// mapping manual
+const mapping = {
+    "EE. UU.": {ticker: "us_index", cat: "RV"},
+    "Europa": {ticker: "eu_index", cat: "RV"},
+    "Eurozona": {ticker: "ez_index", cat: "RV"},
+    "Japón": {ticker: "jp_index", cat: "RV"},
+    "Asia ex-Japón": {ticker: "ax_index", cat: "RV"},
+    "Latam": {ticker: "la_index", cat: "RV"},
+    "T - SD": {ticker: "ts_index", cat: "RF"},
+    "T - MD": {ticker: "tm_index", cat: "RF"},
+    "T - LD": {ticker: "tl_index", cat: "RF"},
+    "IG": {ticker: "ig_index", cat: "RF"},
+    "HY - SD": {ticker: "hysd_index", cat: "RF"},
+    "EMD LC": {ticker: "lc_index", cat: "RF"},
+    "Caja": {ticker: "cash_index", cat: "RF"},
+    "EURUSD": {ticker: "eurusd", cat: "FX"},
+    "USDYEN": {ticker: "usdjpy", cat: "FX"}
+};
+
+// ============================
+// UTILS
+// ============================
+
+function parseCSV(text) {
+    const rows = text.trim().split("\n").map(r => r.split(";"));
+    const headers = rows[0];
+    return rows.slice(1).map(r => {
+        let obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = r[i]);
+        return obj;
+    });
+}
+
+function parseDate(d) {
+    const [dd, mm, yyyy] = d.split("/");
+    return new Date(yyyy, mm - 1, dd);
+}
+
+// ============================
+// DATA LOAD
+// ============================
+
+async function loadData() {
+    const gapsText = await fetch(GAP_FILE).then(r => r.text());
+    const priceText = await fetch(PRICE_FILE).then(r => r.text());
+
+    const gaps = parseCSV(gapsText);
+    const prices = parseCSV(priceText);
+
+    return {gaps, prices};
+}
+
+// ============================
+// RETURNS
+// ============================
+
+function computeReturns(prices) {
+    let returns = [];
+
+    for (let i = 1; i < prices.length; i++) {
+        let r = {};
+        r.date = prices[i]["Fecha"];
+
+        Object.keys(prices[i]).forEach(k => {
+            if (k === "Fecha") return;
+
+            const p1 = parseFloat(prices[i-1][k]);
+            const p2 = parseFloat(prices[i][k]);
+
+            if (!isNaN(p1) && !isNaN(p2)) {
+                r[k] = (p2 / p1) - 1;
+            }
+        });
+
+        returns.push(r);
+    }
+
+    return returns;
+}
+
+// ============================
+// DETECT VECTORS
+// ============================
+
+function getVectors(gaps) {
+    const cols = Object.keys(gaps[0]);
+
+    const vectors = new Set();
+
+    cols.forEach(c => {
+        if (c.includes("_")) {
+            const v = c.split("_").pop();
+            vectors.add(v);
+        }
+    });
+
+    return Array.from(vectors);
+}
+
+// ============================
+// ALPHA
+// ============================
+
+function computeAlpha(gaps, returns, vector) {
+
+    let alpha = [];
+
+    for (let i = 1; i < gaps.length; i++) {
+
+        let a = 0;
+
+        Object.keys(gaps[i]).forEach(col => {
+
+            if (!col.endsWith("_" + vector)) return;
+
+            const asset = col.split("_")[0];
+            const gap = parseFloat(gaps[i][col]) / 10000;
+
+            const ticker = mapping[asset]?.ticker;
+            if (!ticker) return;
+
+            const ret = parseFloat(returns[i-1][ticker]);
+
+            if (!isNaN(gap) && !isNaN(ret)) {
+                a += gap * ret;
+            }
+        });
+
+        alpha.push({
+            date: gaps[i]["Fecha"],
+            value: a
+        });
+    }
+
+    return alpha;
+}
+
+// ============================
+// PLOT
+// ============================
+
+function plotAlpha(dataByVector) {
+
+    const traces = [];
+
+    Object.keys(dataByVector).forEach(v => {
+
+        const data = dataByVector[v];
+
+        let cum = 0;
+        const y = data.map(d => {
+            cum += d.value;
+            return cum;
+        });
+
+        traces.push({
+            x: data.map(d => d.date),
+            y: y,
+            mode: "lines",
+            name: v
+        });
+    });
+
+    Plotly.newPlot("chart", traces, {
+        title: "Alpha acumulado",
+        hovermode: "x unified"
+    });
+}
+
+// ============================
+// UI
+// ============================
+
+function populateVectorSelect(vectors) {
+    const sel = document.getElementById("vectorSelect");
+    vectors.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+function getSelectedVectors() {
+    return Array.from(document.getElementById("vectorSelect").selectedOptions)
+        .map(o => o.value);
+}
+
+// ============================
+// THEME
+// ============================
+
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+}
+
+// ============================
+// INIT
+// ============================
+
+async function init() {
+
+    const {gaps, prices} = await loadData();
+
+    const returns = computeReturns(prices);
+    const vectors = getVectors(gaps);
+
+    populateVectorSelect(vectors);
+
+    function update() {
+        const selected = getSelectedVectors();
+
+        let dataByVector = {};
+
+        selected.forEach(v => {
+            dataByVector[v] = computeAlpha(gaps, returns, v);
+        });
+
+        plotAlpha(dataByVector);
+    }
+
+    document.getElementById("vectorSelect").addEventListener("change", update);
+
+    update();
+}
+
+init();
+
+</script>
+
+</body>
+</html>
