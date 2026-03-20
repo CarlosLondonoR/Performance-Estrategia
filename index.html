@@ -294,23 +294,35 @@
       FX: ["EURUSD","USDYEN"]
     };
 
-    function parseDate_DDMMYYYY(s) {
+    // Parser de fechas flexible: acepta DD/MM/YYYY y YYYY-MM-DD
+    function parseDateFlexible(s) {
       const str = (s || "").trim();
-      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
-      if (!m) return new Date(NaN);
-      const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
-      return new Date(Date.UTC(yyyy, mm-1, dd));
+      if (str === "") return new Date(NaN);
+
+      // YYYY-MM-DD
+      let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(str);
+      if (m) {
+        const yyyy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
+        return new Date(Date.UTC(yyyy, mm-1, dd));
+      }
+      // DD/MM/YYYY
+      m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
+      if (m) {
+        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+        return new Date(Date.UTC(yyyy, mm-1, dd));
+      }
+      // fallback inválido
+      return new Date(NaN);
     }
-    function toISODate(d) {
-      return d.toISOString().slice(0,10);
-    }
+
+    function toISODate(d) { return d.toISOString().slice(0,10); }
     function fmtPct(x, digits=2) { return isFinite(x) ? (x*100).toFixed(digits) + "%" : "—"; }
     function fmtNum(x, digits=6) { return isFinite(x) ? x.toFixed(digits) : "—"; }
 
     // CSV parser robusto: ;, BOM, comillas, ; finales
     function parseCSV(text, delimiter=";") {
       const cleaned = text.replace(/^\uFEFF/, "");
-      const lines = cleaned.split(/\r?\n/).filter(l => l.length>0);
+      const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length>0);
       if (lines.length === 0) return { headers:[], rows:[] };
 
       const parseLine = (line) => {
@@ -416,11 +428,15 @@
       const trDateCol = track.headers[0];
       const gpDateCol = gaps.headers[0];
 
-      const trDates = track.rows.map(r => parseDate_DDMMYYYY(r[trDateCol]));
-      const gpDates = gaps.rows.map(r => parseDate_DDMMYYYY(r[gpDateCol]));
-      // Validamos que no haya "Invalid Date" antes de toISOString
-      if (trDates.some(d => isNaN(d))) throw new Error("Fecha inválida en trackrecord.csv. Formato requerido: DD/MM/YYYY");
-      if (gpDates.some(d => isNaN(d))) throw new Error("Fecha inválida en gaps.csv. Formato requerido: DD/MM/YYYY");
+      const trDates = track.rows.map(r => parseDateFlexible(r[trDateCol]));
+      const gpDates = gaps.rows.map(r => parseDateFlexible(r[gpDateCol]));
+
+      if (trDates.some(d => isNaN(d))) {
+        throw new Error("Fecha inválida en trackrecord.csv. Formatos válidos: DD/MM/YYYY o YYYY-MM-DD");
+      }
+      if (gpDates.some(d => isNaN(d))) {
+        throw new Error("Fecha inválida en gaps.csv. Formatos válidos: DD/MM/YYYY o YYYY-MM-DD");
+      }
 
       const trISO = trDates.map(toISODate);
       const gpISO = gpDates.map(toISODate);
@@ -501,7 +517,7 @@
       appendDiag({
         common_dates: commonISO.length,
         assets_with_returns: Object.keys(returnsByAsset),
-        vectors_detected: state.vectorNames.slice(0, 10),
+        sample_vectors: state.vectorNames.slice(0, 10),
       });
     }
 
