@@ -230,45 +230,7 @@
       max-width: 100%;
     }
 
-    .restore-btn {
-      position: absolute;
-      right: 10px;
-      bottom: 10px;
-      z-index: 4;
-      padding: 6px 10px;
-      font-size: 11px;
-      border-radius: 999px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    }
-
-    .asset-chip-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-height: 92px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .asset-chip {
-      font-size: 11px;
-      padding: 5px 8px;
-      border-radius: 999px;
-      border: 1px solid var(--grid);
-      background: var(--chip);
-      cursor: pointer;
-      user-select: none;
-      white-space: nowrap;
-    }
-
-    .asset-chip.active {
-      background: var(--chip-active);
-      color: white;
-      border-color: transparent;
-    }
+    /* Se removió el botón Restaurar y chips del Waterfall */
 
     details.diagnostics {
       margin-left: 8px;
@@ -339,7 +301,7 @@
         </div>
 
         <div class="control">
-          <label>Vector foco (para descomposición & detalle)</label>
+          <label>Vector foco (para descomposición &amp; detalle)</label>
           <select id="vectorFocus"></select>
           <span class="small">Afecta Waterfall, Descomposición, Heatmap, Barras y Histograma.</span>
         </div>
@@ -414,62 +376,70 @@
     </section>
 
     <section class="charts">
+      <!-- 1) Alpha acumulado — FULL -->
       <div class="card span-2">
         <h3>Alpha acumulado por vector <span class="small">Comparativo</span></h3>
         <div id="chartCumulative" class="plot"></div>
       </div>
 
-      <div class="card">
-        <h3>Evolución de asset classes indexada a base 100 <span class="small">Legend click para ocultar/mostrar</span></h3>
+      <!-- 2) Indexados — FULL -->
+      <div class="card span-2">
+        <h3>Evolución de asset classes indexada a base 100 <span class="small">Haz clic en la leyenda para ocultar/mostrar</span></h3>
         <div class="chart-toolbar">
           <div class="btn-group">
+            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="ALL">Todos</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="ACTIVE">Vigentes</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RV">Solo RV</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Ocultar una serie desde la leyenda la elimina también de la leyenda al recalcular. Usa “Restaurar todos” para volver a ver todo.</div>
+          <div class="chart-note">La leyenda no afecta el cálculo de “Todos/Vigentes”. Usa “Todos” para volver a ver todas las series.</div>
         </div>
         <div id="chartIndexed" class="plot"></div>
-        <button class="restore-btn" type="button" data-action="restore" data-chart="indexed">Restaurar todos</button>
       </div>
 
-      <div class="card">
+      <!-- 3) Barras de retorno — FULL -->
+      <div class="card span-2">
         <h3>Retorno acumulado por asset class <span class="small">Barras horizontales ordenadas de mayor a menor</span></h3>
         <div class="chart-toolbar">
           <div class="btn-group">
+            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="ALL">Todos</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="ACTIVE">Vigentes</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RV">Solo RV</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Oculta series individuales con la leyenda. El orden se recalcula con la ventana seleccionada.</div>
+          <div class="chart-note">Oculta series individuales con la leyenda. Usa “Todos” para restaurar todas.</div>
         </div>
         <div id="chartReturnBars" class="plot"></div>
-        <button class="restore-btn" type="button" data-action="restore" data-chart="returnBars">Restaurar todos</button>
       </div>
 
-      <div class="card">
-        <h3>Curva de Drawdown <span class="small">Por vector</span></h3>
-        <div id="chartDrawdown" class="plot"></div>
-      </div>
-
+      <!-- 4) Waterfall — FULL -->
       <div class="card span-2">
         <h3>Waterfall — Contribución por asset class <span id="wfVector" class="small"></span></h3>
         <div class="chart-toolbar">
           <div class="btn-group">
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ALL">Todos</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ACTIVE">Vigentes</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RV">Solo RV</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Usa los chips de abajo para ocultar/mostrar activos individuales. El waterfall se recalcula sobre el vector foco.</div>
+          <div class="chart-note">Filtra por grupo o “Vigentes”. (Se eliminaron los chips de activos individuales).</div>
         </div>
-        <div id="waterfallChips" class="asset-chip-list"></div>
         <div id="chartWaterfall" class="plot"></div>
       </div>
 
-      <div class="card">
+      <!-- 5) Descomposición — FULL -->
+      <div class="card span-2">
         <h3>Descomposición: Allocation vs Selection (RV/RF) vs FX</h3>
         <div id="chartDecomposition" class="plot"></div>
+      </div>
+
+      <!-- Restantes en parejas -->
+      <div class="card">
+        <h3>Curva de Drawdown <span class="small">Por vector</span></h3>
+        <div id="chartDrawdown" class="plot"></div>
       </div>
 
       <div class="card">
@@ -527,6 +497,11 @@
       RF: ["T - SD", "T - MD", "T - LD", "TIPS - SD", "TIPS - LD", "IG", "IG - SD", "IG - LD", "HY - SD", "HY - LD", "EMD LC", "EMD HC", "Caja"],
       FX: ["EURUSD", "USDYEN"]
     };
+
+    // Activos que NO deben incluirse cuando se presione "Vigentes"
+    const INACTIVE_FOR_ACTIVE_VIEW = new Set([
+      "Eurozona", "TIPS - SD", "TIPS - LD", "IG - SD", "IG - LD", "HY - SD", "EMD LC", "Caja"
+    ]);
 
     const RETURN_ASSET_ORDER = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX];
 
@@ -721,6 +696,7 @@
     }
 
     function restoreChartVisibility(chartKey) {
+      // (Botón restaurar removido; se mantiene helper para usos internos si se requiere)
       if (chartKey === "waterfall") {
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
       } else {
@@ -730,10 +706,14 @@
     }
 
     function setChartGroupVisibility(chartKey, group) {
+      const filterActive = (arr) => arr.filter(a => !INACTIVE_FOR_ACTIVE_VIEW.has(a));
+
       if (chartKey === "waterfall") {
         const all = getFocusVectorAssetsOrdered();
         if (group === "ALL") {
           state.visibility.waterfall = new Set(all);
+        } else if (group === "ACTIVE") {
+          state.visibility.waterfall = new Set(filterActive(all));
         } else {
           state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
         }
@@ -741,6 +721,8 @@
         const all = getOrderedReturnAssets();
         if (group === "ALL") {
           state.visibility[chartKey] = new Set(all);
+        } else if (group === "ACTIVE") {
+          state.visibility[chartKey] = new Set(filterActive(all));
         } else {
           state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
         }
@@ -754,28 +736,6 @@
       else current.add(asset);
       state.visibility[chartKey] = current;
       renderAll();
-    }
-
-    function renderWaterfallChips() {
-      const container = document.getElementById("waterfallChips");
-      if (!container) return;
-      const all = getFocusVectorAssetsOrdered();
-      const visible = state.visibility.waterfall || new Set(all);
-
-      if (!all.length) {
-        container.innerHTML = `<span class="small">Sin activos para el vector foco actual</span>`;
-        return;
-      }
-
-      const visibleAssets = all.filter(a => visible.has(a));
-      if (!visibleAssets.length) {
-        container.innerHTML = `<span class="small">Sin activos visibles. Usa “Restaurar todos”.</span>`;
-        return;
-      }
-
-      container.innerHTML = visibleAssets.map(a => {
-        return `<button type="button" class="asset-chip active" data-action="toggle-asset" data-chart="waterfall" data-asset="${escapeHtml(a)}">${escapeHtml(a)}</button>`;
-      }).join("");
     }
 
     // =============================
@@ -1162,7 +1122,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 45 },
+        margin: { l: 55, r: 20, t: 30, b: 80 }, // más margen abajo para leyenda
         hovermode: "x unified",
         xaxis: {
           showgrid: true,
@@ -1176,7 +1136,8 @@
           zerolinecolor: c.grid
         },
         showlegend: true,
-        legend: { orientation: "h", x: 0, y: 1.1 }
+        // Leyenda fuera del área de datos (abajo)
+        legend: { orientation: "h", x: 0, y: -0.2, xanchor: "left", yanchor: "top" }
       };
     }
 
@@ -1666,14 +1627,13 @@
       }
 
       ensureVisibilityDefaults();
-      renderWaterfallChips();
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
       renderReturnBarsChart();
-      plotDrawdown();
       plotWaterfall();
       plotDecomposition();
+      plotDrawdown();
       plotHeatmap();
       plotContributionBars();
       plotHist();
@@ -1695,8 +1655,10 @@
         if (action === "group") {
           setChartGroupVisibility(chart, group);
         } else if (action === "restore") {
+          // (ya no hay botón restaurar)
           restoreChartVisibility(chart);
         } else if (action === "toggle-asset") {
+          // (chips eliminados en Waterfall)
           toggleChartAsset(chart, asset);
         }
       });
@@ -1718,8 +1680,13 @@
         vFocus.appendChild(opt2);
       });
 
+      // Selección múltiple por defecto
       state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
-      state.focusVector = state.vectorNames[0] || null;
+
+      // Vector foco por defecto: "final" si existe, si no, primero
+      state.focusVector = state.vectorNames.includes("final")
+        ? "final"
+        : (state.vectorNames[0] || null);
 
       for (const opt of vMulti.options) opt.selected = state.selectedVectors.includes(opt.value);
       vFocus.value = state.focusVector || "";
@@ -1740,7 +1707,6 @@
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
       ensureVisibilityDefaults();
-      renderWaterfallChips();
 
       vMulti.addEventListener("change", () => {
         const sel = Array.from(vMulti.selectedOptions).map(o => o.value);
