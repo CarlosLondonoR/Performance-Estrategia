@@ -15,7 +15,7 @@
       --muted: #475569;
       --accent: #2563eb;
       --grid: #e2e8f0;
-      --edge: #cbd5e1; /* borde más marcado */
+      --edge: #cbd5e1;
       --ok: #16a34a;
       --warn: #f59e0b;
       --bad: #dc2626;
@@ -186,10 +186,14 @@
     .metric .kpi { font-weight: 700; font-size: 18px; }
     .metric .desc { color: var(--muted); font-size: 12px; }
 
+    /* ====== NUEVO: filas auto con altura mínima y expansión automática ====== */
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-auto-rows: 430px; /* base para spans */
+      /* Altura mínima razonable para cada fila, pero que crezca automáticamente con el contenido.
+         Esto asegura que, si una tarjeta cambia de alto, las de abajo SIEMPRE se reacomoden
+         sin dejar huecos grandes. */
+      grid-auto-rows: minmax(380px, auto);
       gap: 12px;
     }
 
@@ -207,9 +211,9 @@
     }
     .card.span-2 { grid-column: 1 / -1; }
 
-    /* Mantener visible solo el Waterfall; contener ReturnBars */
+    /* Evitar cortes SOLO en Waterfall; ReturnBars contenido */
     #cardWaterfall { overflow: visible; }
-    #cardReturnBars { overflow: hidden; }  /* <-- clave para que no se salga del módulo */
+    #cardReturnBars { overflow: hidden; }
 
     .card h3 {
       margin: 0;
@@ -343,7 +347,7 @@
           <summary>Diagnóstico</summary>
           <pre id="diagBox">—</pre>
         </details>
-        <!-- Botón de tema con íconos (sin texto) -->
+        <!-- Botón de tema -->
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
           <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -362,7 +366,7 @@
 
     <section class="controls">
       <div class="controls-grid">
-        <!-- Botón que abre modal para selección múltiple -->
+        <!-- Vectores múltiple -->
         <div class="control">
           <label>Vectores (múltiple)</label>
           <div class="row">
@@ -475,7 +479,7 @@
         <div id="chartIndexed" class="plot"></div>
       </div>
 
-      <!-- 3) Barras de retorno — FULL (altura sincronizada con el módulo) -->
+      <!-- 3) Barras de retorno — FULL -->
       <div class="card span-2" id="cardReturnBars">
         <h3>
           <span>Retorno acumulado por asset class</span>
@@ -624,7 +628,6 @@
       FX: ["EURUSD", "USDYEN"]
     };
 
-    // Activos que NO deben incluirse cuando se presione "Vigentes"
     const INACTIVE_FOR_ACTIVE_VIEW = new Set([
       "Eurozona", "TIPS - SD", "TIPS - LD", "IG - SD", "IG - LD", "HY - SD", "EMD LC", "Caja"
     ]);
@@ -1132,7 +1135,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
+        margin: { l: 55, r: 20, t: 30, b: 80 },
         hovermode: "x unified",
         xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
         yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid, automargin: true },
@@ -1274,10 +1277,10 @@
     }
 
     /* =========================================================
-       3) BARRAS DE RETORNO — AJUSTE DE VISTA EN EL MÓDULO
+       3) BARRAS DE RETORNO — Vista consistente dentro del módulo
        - Mantiene leyenda, colores por grupo y datos.
-       - Sin desbordes y sin “gráfico pequeño”.
-       - Altura del gráfico fijada y sincronizada con el card.
+       - La tarjeta crece/encoge y las inferiores SIEMPRE se reacomodan
+         gracias a grid-auto-rows: minmax(..., auto) en CSS.
        ========================================================= */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
@@ -1287,41 +1290,23 @@
       const visible = state.visibility.returnBars || new Set(allAssets);
       const visibleAssets = allAssets.filter(a => visible.has(a));
 
-      const card = document.getElementById("cardReturnBars");
       const plotDiv = document.getElementById("chartReturnBars");
 
-      // Caso vacío
       if (!visibleAssets.length || !idxs.length) {
-        if (plotDiv) {
-          plotDiv.style.height = "360px";
-          plotDiv.style.minHeight = "360px";
-        }
-        if (card) {
-          const baseRow = 430;
-          const headerH = card.querySelector("h3")?.offsetHeight || 0;
-          const toolbarH = card.querySelector(".chart-toolbar")?.offsetHeight || 0;
-          const cs = getComputedStyle(card);
-          const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-          const borderV = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-          const cardH = headerH + toolbarH + 360 + padV + borderV;
-          card.style.height = cardH + "px";
-          card.style.gridRow = `span ${Math.max(1, Math.ceil(cardH / baseRow))}`;
-        }
+        plotDiv.style.height = "360px";
+        plotDiv.style.minHeight = "360px";
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         return;
       }
 
-      // Datos ordenados por retorno acumulado (desc)
       const data = visibleAssets.map(asset => ({
         asset,
         ret: computeAccumulatedReturn(asset, idxs),
         group: state.groupsByAsset[asset] || "OTRO"
       })).sort((a, b) => b.ret - a.ret);
 
-      // Colores por grupo (mantener lo ya definido): RV azul, RF ámbar, FX violeta
       const GROUP_COLOR = { RV: "#1d4ed8", RF: "#f59e0b", FX: "#8b5cf6", OTRO: "#64748b" };
 
-      // Un trace por barra para conservar toggles por leyenda
       const traces = data.map(d => ({
         type: "bar",
         orientation: "h",
@@ -1331,31 +1316,28 @@
         marker: { color: GROUP_COLOR[d.group] || GROUP_COLOR.OTRO },
         texttemplate: "%{x:.1%}",
         textposition: "outside",
-        cliponaxis: false,               // evita corte de etiquetas fuera
+        cliponaxis: false,
         textfont: { size: 11 },
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
-      // ---- Altura del gráfico (robusta) ----
-      const PER_BAR = 22;   // px por barra visible
-      const PLOT_MIN = 360; // mínimo para evitar “gráfico pequeño”
-      const PLOT_MAX = 820; // tope para no crecer indefinidamente
-      const desiredPlotH = Math.round(PER_BAR * data.length + 240); // 240 = ejes + leyenda + labels
+      // Altura del gráfico controlada (sin crecer indefinidamente)
+      const PER_BAR = 22;
+      const PLOT_MIN = 360;
+      const PLOT_MAX = 820;
+      const desiredPlotH = Math.round(PER_BAR * data.length + 240);
       const plotHeight = Math.max(PLOT_MIN, Math.min(PLOT_MAX, desiredPlotH));
 
-      // Aplicar alto al contenedor del gráfico
       plotDiv.style.height = plotHeight + "px";
       plotDiv.style.minHeight = plotHeight + "px";
 
-      // Layout del gráfico
       const layout = baseLayout("");
       layout.autosize = false;
-      layout.height = plotHeight;            // alto exacto del SVG
+      layout.height = plotHeight;
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
 
-      // Rango simétrico y holgura para etiquetas "outside"
       const maxAbs = Math.max(1e-9, ...data.map(d => Math.abs(d.ret) || 0));
       layout.xaxis.range = [-maxAbs * 1.15, maxAbs * 1.15];
 
@@ -1364,7 +1346,6 @@
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
 
-      // Márgenes: suficiente para nombres (izq.) y etiquetas outside (der.)
       layout.margin.l = 220;
       layout.margin.r = 150;
       layout.margin.t = 30;
@@ -1372,26 +1353,8 @@
       layout.bargap = 0.42;
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
-
-      // ---- Sincronizar altura del card con el contenido real ----
-      requestAnimationFrame(() => {
-        if (!card) return;
-        const baseRow = 430;
-        const headerH = card.querySelector("h3")?.offsetHeight || 0;
-        const toolbarH = card.querySelector(".chart-toolbar")?.offsetHeight || 0;
-        const cs = getComputedStyle(card);
-        const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const borderV = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-
-        // Altura total del card = título + toolbar + plot + paddings + bordes + gap interno (~8px)
-        const GAP = 8;
-        const cardH = headerH + toolbarH + plotHeight + padV + borderV + GAP;
-
-        card.style.height = cardH + "px";
-        card.style.gridRow = `span ${Math.max(1, Math.ceil(cardH / baseRow))}`;
-      });
-
       bindLegendToggle("chartReturnBars", "returnBars");
+      // No es necesario ajustar gridRow vía JS: el CSS se encarga de la altura y empuje de las tarjetas inferiores.
     }
 
     function aggregateContribByAsset(vectorName, idxs) {
@@ -1409,12 +1372,10 @@
       if (!window.Plotly) return;
 
       const v = state.focusVector;
-      const card = document.getElementById("cardWaterfall");
       const plotDiv = document.getElementById("chartWaterfall");
 
       if (!v || !state.perVector[v]) {
-        if (card) card.style.gridRow = "span 1";
-        if (plotDiv) plotDiv.style.minHeight = "340px";
+        plotDiv.style.minHeight = "340px";
         Plotly.react("chartWaterfall", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
         document.getElementById("wfVector").textContent = "";
         return;
@@ -1427,8 +1388,7 @@
       const orderAssets = allFocusAssets.filter(a => visible.has(a) && Object.prototype.hasOwnProperty.call(agg, a));
 
       if (!orderAssets.length || !idxs.length) {
-        if (card) card.style.gridRow = "span 1";
-        if (plotDiv) plotDiv.style.minHeight = "340px";
+        plotDiv.style.minHeight = "340px";
         Plotly.react("chartWaterfall", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         document.getElementById("wfVector").textContent = `Vector: ${v}`;
         return;
@@ -1464,19 +1424,13 @@
       layout.margin.l = 60;
       layout.margin.r = 20;
 
-      // Altura moderada con límite
+      // Altura moderada (el contenedor .charts crece automáticamente con el contenido)
       const nBars = x.length;
       const base = 340;
       const step = 18;
       const maxH = 560;
       const desired = Math.min(maxH, base + Math.floor(nBars / 6) * step);
-
-      if (plotDiv) plotDiv.style.minHeight = desired + "px";
-      if (card) {
-        const baseRow = 430;
-        const span = Math.max(1, Math.ceil(desired / baseRow));
-        card.style.gridRow = `span ${span}`;
-      }
+      plotDiv.style.minHeight = desired + "px";
 
       Plotly.react("chartWaterfall", [trace], layout, { displayModeBar: false, responsive: true });
       document.getElementById("wfVector").textContent = `Vector: ${v}`;
@@ -1682,8 +1636,8 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();  // <-- módulo corregido
-      plotWaterfall();
+      renderReturnBarsChart();   // Vista consistente (altura del card y rejilla)
+      plotWaterfall();           // Se deja crecer y la rejilla empuja lo de abajo
       plotDecomposition();
       plotDrawdown();
       plotHeatmap();
@@ -1719,7 +1673,6 @@
       const list = document.getElementById("vectorList");
       const count = document.getElementById("vmCount");
 
-      // construir lista (o refrescar selección)
       list.innerHTML = "";
       const frag = document.createDocumentFragment();
       state.vectorNames.forEach(v => {
@@ -1744,7 +1697,6 @@
 
       modal.style.display = "flex";
 
-      // botones del modal
       document.getElementById("vectorAll").onclick = () => {
         list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true); refreshCount();
       };
@@ -1760,7 +1712,6 @@
         renderAll();
       };
 
-      // cerrar al hacer clic fuera
       modal.addEventListener("click", (ev) => {
         if (ev.target === modal) modal.style.display = "none";
       }, { once: true });
@@ -1769,14 +1720,12 @@
     function initUI() {
       const vFocus = document.getElementById("vectorFocus");
 
-      // Poblado de opciones de foco
       state.vectorNames.forEach(v => {
         const opt2 = document.createElement("option");
         opt2.value = v; opt2.textContent = v;
         vFocus.appendChild(opt2);
       });
 
-      // Defaults: intentar "cual" y "final"
       const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
       const defaults = [];
       if (lower.has("cual")) defaults.push(lower.get("cual"));
@@ -1784,11 +1733,9 @@
       if (defaults.length === 0) state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       else state.selectedVectors = Array.from(new Set(defaults));
 
-      // Vector foco por defecto
       state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
       vFocus.value = state.focusVector || "";
 
-      // Fechas
       const dFrom = document.getElementById("dateFrom");
       const dTo = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
@@ -1804,7 +1751,6 @@
       ensureVisibilityDefaults();
       updateVectorSummaryChip();
 
-      // Listeners
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
@@ -1839,7 +1785,6 @@
         renderAll();
       });
 
-      // Tema: íconos sol/luna
       const iconSun = document.getElementById("iconSun");
       const iconMoon = document.getElementById("iconMoon");
       const updateThemeIcon = () => {
@@ -1887,3 +1832,4 @@
     })();
   </script>
 </body>
+</html>
