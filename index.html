@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  <!-- Plotly local (NO CDN). Debe existir plotly.min.js en la raíz del repo -->
-  ./plotly.min.js</script>
+  <script src="./plotly.min.js"></script>
 
   <style>
     :root {
@@ -20,7 +19,9 @@
       --warn: #f59e0b;
       --bad: #dc2626;
       --chip: #eef2ff;
+      --chip-active: #dbeafe;
     }
+
     [data-theme="dark"] {
       --bg: #0b1220;
       --panel: #111827;
@@ -29,98 +30,284 @@
       --accent: #60a5fa;
       --grid: #1f2937;
       --chip: #1e293b;
+      --chip-active: #1d4ed8;
     }
+
     html, body {
-      margin: 0; padding: 0; height: 100%;
-      background: var(--bg); color: var(--text);
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     }
+
     .app {
       display: grid;
       grid-template-rows: auto auto auto 1fr;
       gap: 12px;
       padding: 16px;
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
     }
+
     header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 12px 16px; background: var(--panel); border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--panel);
+      border-radius: 12px;
       box-shadow: 0 1px 0 var(--grid) inset;
     }
+
     header .title {
-      font-weight: 700; font-size: 18px;
+      font-weight: 700;
+      font-size: 18px;
     }
+
     header .subtitle {
-      color: var(--muted); font-size: 13px;
+      color: var(--muted);
+      font-size: 13px;
     }
+
     .controls, .metrics {
-      background: var(--panel); border-radius: 12px; padding: 12px 16px;
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 12px 16px;
       box-shadow: 0 1px 0 var(--grid) inset;
     }
+
     .controls-grid {
       display: grid;
       grid-template-columns: 1.5fr 1fr 1fr 1.2fr 1fr;
       gap: 12px;
     }
+
     .control {
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    label { font-size: 12px; color: var(--muted); }
-    select, input, button {
-      padding: 8px 10px; border-radius: 10px; border: 1px solid var(--grid);
-      background: var(--panel); color: var(--text);
-    }
-    .btn {
-      background: var(--accent); color: white; border: none; cursor: pointer;
-    }
-    .btn.ghost {
-      background: transparent; color: var(--text); border: 1px solid var(--grid);
-    }
-    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip {
-      padding: 6px 10px; border-radius: 999px; background: var(--chip);
-      border: 1px solid var(--grid); font-size: 12px;
-    }
-    .metrics {
-      display: grid; gap: 8px;
-      grid-template-columns: repeat(6, 1fr);
-    }
-    .metric {
-      padding: 10px 12px; background: var(--panel); border: 1px solid var(--grid);
-      border-radius: 12px;
-    }
-    .metric .kpi { font-weight: 700; font-size: 18px; }
-    .metric .desc { color: var(--muted); font-size: 12px; }
-    .charts {
-      display: grid;
-      grid-template-columns: 1.5fr 1.5fr;
-      grid-auto-rows: 380px;
-      gap: 12px;
-    }
-    .card {
-      background: var(--panel); border: 1px solid var(--grid); border-radius: 12px;
-      padding: 10px;
-      display: flex; flex-direction: column; gap: 6px;
-      overflow: hidden;
-    }
-    .card h3 {
-      margin: 0; font-size: 14px; font-weight: 700; color: var(--muted);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .plot { flex: 1; min-height: 300px; }
-    .small { font-size: 12px; color: var(--muted); }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    @media (max-width: 1100px) {
-      .controls-grid { grid-template-columns: 1fr; }
-      .metrics { grid-template-columns: 1fr 1fr 1fr; }
-      .charts { grid-template-columns: 1fr; }
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
-    /* Bloque diagnóstico opcional */
-    details.diagnostics { margin-left: 8px; }
-    details.diagnostics summary { cursor: pointer; color: var(--muted); }
-    details.diagnostics pre { background: var(--chip); padding: 6px; border-radius: 8px; overflow: auto; }
+    label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    select, input, button {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--grid);
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--grid);
+    }
+
+    .btn.small {
+      padding: 6px 9px;
+      font-size: 12px;
+      border-radius: 9px;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--chip);
+      border: 1px solid var(--grid);
+      font-size: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    .metric {
+      padding: 10px 12px;
+      background: var(--panel);
+      border: 1px solid var(--grid);
+      border-radius: 12px;
+    }
+
+    .metric .kpi {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .metric .desc {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 430px;
+      gap: 12px;
+    }
+
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--grid);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .card.span-2 {
+      grid-column: 1 / -1;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .plot {
+      flex: 1;
+      min-height: 320px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chart-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .chart-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+      max-width: 100%;
+    }
+
+    .restore-btn {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      z-index: 4;
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .asset-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 92px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .asset-chip {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--grid);
+      background: var(--chip);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .asset-chip.active {
+      background: var(--chip-active);
+      color: white;
+      border-color: transparent;
+    }
+
+    details.diagnostics {
+      margin-left: 8px;
+    }
+
+    details.diagnostics summary {
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    details.diagnostics pre {
+      background: var(--chip);
+      padding: 6px;
+      border-radius: 8px;
+      overflow: auto;
+      max-width: 380px;
+      max-height: 220px;
+    }
+
+    @media (max-width: 1200px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+      .metrics {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .charts {
+        grid-template-columns: 1fr;
+      }
+      .card.span-2 {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .metrics {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -128,7 +315,7 @@
     <header>
       <div>
         <div class="title">Alpha Dashboard — Vectores de Recomendación</div>
-        <div class="subtitle">Lectura de CSV locales · Cálculo de Alpha, Descomposición y Métricas · Plotly local</div>
+        <div class="subtitle">Lectura de CSV locales · Alpha en bps · Descomposición · Gráficas dinámicas con Plotly local</div>
       </div>
       <div class="row">
         <span id="loadStatus" class="chip">Cargando datos…</span>
@@ -150,11 +337,13 @@
             <button class="btn ghost" id="selectNone" type="button">Ninguno</button>
           </div>
         </div>
+
         <div class="control">
           <label>Vector foco (para descomposición & detalle)</label>
           <select id="vectorFocus"></select>
           <span class="small">Afecta Waterfall, Descomposición, Heatmap, Barras y Histograma.</span>
         </div>
+
         <div class="control">
           <label>Ventanas rápidas</label>
           <div class="btn-group" id="quickRanges">
@@ -168,6 +357,7 @@
             <button class="btn ghost" type="button" data-range="ALL">Desde inicio</button>
           </div>
         </div>
+
         <div class="control">
           <label>Rango personalizado</label>
           <div class="row">
@@ -180,6 +370,7 @@
           </div>
           <span class="small" id="dateSummary"></span>
         </div>
+
         <div class="control">
           <label>Estado</label>
           <div class="small">Fechas comunes: <span id="dateCount">0</span></div>
@@ -191,12 +382,12 @@
 
     <section class="metrics" id="metrics">
       <div class="metric">
-        <div class="desc">Alpha acumulado</div>
+        <div class="desc">Alpha acumulado (bps)</div>
         <div class="kpi" id="mCumulative">—</div>
         <div class="small">Suma del alpha diario en ventana seleccionada</div>
       </div>
       <div class="metric">
-        <div class="desc">Vol anualizada</div>
+        <div class="desc">Vol anualizada (bps)</div>
         <div class="kpi" id="mVol">—</div>
         <div class="small">Std diaria × √252</div>
       </div>
@@ -216,39 +407,83 @@
         <div class="small">% días con alpha &gt; 0</div>
       </div>
       <div class="metric">
-        <div class="desc">Max Drawdown</div>
+        <div class="desc">Max Drawdown (bps)</div>
         <div class="kpi" id="mMDD">—</div>
         <div class="small">Dinámico en la ventana</div>
       </div>
     </section>
 
     <section class="charts">
-      <div class="card">
+      <div class="card span-2">
         <h3>Alpha acumulado por vector <span class="small">Comparativo</span></h3>
         <div id="chartCumulative" class="plot"></div>
       </div>
+
+      <div class="card">
+        <h3>Evolución de asset classes indexada a base 100 <span class="small">Legend click para ocultar/mostrar</span></h3>
+        <div class="chart-toolbar">
+          <div class="btn-group">
+            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RV">Solo RV</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RF">Solo RF</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="FX">Solo FX</button>
+          </div>
+          <div class="chart-note">Ocultar una serie desde la leyenda la elimina también de la leyenda al recalcular. Usa “Restaurar todos” para volver a ver todo.</div>
+        </div>
+        <div id="chartIndexed" class="plot"></div>
+        <button class="restore-btn" type="button" data-action="restore" data-chart="indexed">Restaurar todos</button>
+      </div>
+
+      <div class="card">
+        <h3>Retorno acumulado por asset class <span class="small">Barras horizontales ordenadas de mayor a menor</span></h3>
+        <div class="chart-toolbar">
+          <div class="btn-group">
+            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RV">Solo RV</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RF">Solo RF</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="FX">Solo FX</button>
+          </div>
+          <div class="chart-note">Oculta series individuales con la leyenda. El orden se recalcula con la ventana seleccionada.</div>
+        </div>
+        <div id="chartReturnBars" class="plot"></div>
+        <button class="restore-btn" type="button" data-action="restore" data-chart="returnBars">Restaurar todos</button>
+      </div>
+
       <div class="card">
         <h3>Curva de Drawdown <span class="small">Por vector</span></h3>
         <div id="chartDrawdown" class="plot"></div>
       </div>
-      <div class="card">
+
+      <div class="card span-2">
         <h3>Waterfall — Contribución por asset class <span id="wfVector" class="small"></span></h3>
+        <div class="chart-toolbar">
+          <div class="btn-group">
+            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ALL">Todos</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RV">Solo RV</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RF">Solo RF</button>
+            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="FX">Solo FX</button>
+          </div>
+          <div class="chart-note">Usa los chips de abajo para ocultar/mostrar activos individuales. El waterfall se recalcula sobre el vector foco.</div>
+        </div>
+        <div id="waterfallChips" class="asset-chip-list"></div>
         <div id="chartWaterfall" class="plot"></div>
       </div>
+
       <div class="card">
         <h3>Descomposición: Allocation vs Selection (RV/RF) vs FX</h3>
         <div id="chartDecomposition" class="plot"></div>
       </div>
+
       <div class="card">
-        <h3>Heatmap — Contribución por mes y asset class</h3>
+        <h3>Heatmap — Contribución por mes y asset class (bps)</h3>
         <div id="chartHeatmap" class="plot"></div>
       </div>
+
       <div class="card">
-        <h3>Ranking de contribución por asset class</h3>
+        <h3>Ranking de contribución por asset class (bps)</h3>
         <div id="chartBars" class="plot"></div>
       </div>
+
       <div class="card">
-        <h3>Distribución del alpha diario (histograma)</h3>
+        <h3>Distribución del alpha diario (bps)</h3>
         <div id="chartHist" class="plot"></div>
       </div>
     </section>
@@ -259,119 +494,188 @@
     // UTILIDADES GENERALES
     // =============================
     const ANN_FACTOR = Math.sqrt(252);
-    const IGNORED_TRACK_COLS = new Set(["eurusd_spot","usdjpy_spot","Duracion"]);
+    const IGNORED_TRACK_COLS = new Set(["eurusd_spot", "usdjpy_spot", "Duracion"]);
 
-    // Mapeo de tickers -> AssetName + grupo
     const TICKER_MAP = {
-      "us_index": { asset:"EE. UU.", group:"RV" },
-      "eu_index": { asset:"Europa", group:"RV" },
-      "ez_index": { asset:"Eurozona", group:"RV" },
-      "jp_index": { asset:"Japón", group:"RV" },
-      "ax_index": { asset:"Asia ex-Japón", group:"RV" },
-      "la_index": { asset:"Latam", group:"RV" },
+      "us_index": { asset: "EE. UU.", group: "RV" },
+      "eu_index": { asset: "Europa", group: "RV" },
+      "ez_index": { asset: "Eurozona", group: "RV" },
+      "jp_index": { asset: "Japón", group: "RV" },
+      "ax_index": { asset: "Asia ex-Japón", group: "RV" },
+      "la_index": { asset: "Latam", group: "RV" },
 
-      "ts_index": { asset:"T - SD", group:"RF" },
-      "tm_index": { asset:"T - MD", group:"RF" },
-      "tl_index": { asset:"T - LD", group:"RF" },
-      "tipss_index": { asset:"TIPS - SD", group:"RF" },
-      "tipsl_index": { asset:"TIPS - LD", group:"RF" },
-      "ig_index": { asset:"IG", group:"RF" },
-      "igsd_index": { asset:"IG - SD", group:"RF" },
-      "igld_index": { asset:"IG - LD", group:"RF" },
-      "hysd_index": { asset:"HY - SD", group:"RF" },
-      "hyld_index": { asset:"HY - LD", group:"RF" },
-      "lc_index": { asset:"EMD LC", group:"RF" },
-      "hc_index": { asset:"EMD HC", group:"RF" },
-      "cash_index": { asset:"Caja", group:"RF" },
+      "ts_index": { asset: "T - SD", group: "RF" },
+      "tm_index": { asset: "T - MD", group: "RF" },
+      "tl_index": { asset: "T - LD", group: "RF" },
+      "tipss_index": { asset: "TIPS - SD", group: "RF" },
+      "tipsl_index": { asset: "TIPS - LD", group: "RF" },
+      "ig_index": { asset: "IG", group: "RF" },
+      "igsd_index": { asset: "IG - SD", group: "RF" },
+      "igld_index": { asset: "IG - LD", group: "RF" },
+      "hysd_index": { asset: "HY - SD", group: "RF" },
+      "hyld_index": { asset: "HY - LD", group: "RF" },
+      "lc_index": { asset: "EMD LC", group: "RF" },
+      "hc_index": { asset: "EMD HC", group: "RF" },
+      "cash_index": { asset: "Caja", group: "RF" },
 
-      "eurusd": { asset:"EURUSD", group:"FX" },
-      "usdjpy": { asset:"USDYEN", group:"FX" },
+      "eurusd": { asset: "EURUSD", group: "FX" },
+      "usdjpy": { asset: "USDYEN", group: "FX" }
     };
 
     const ASSETS_BY_GROUP = {
-      RV: ["EE. UU.","Europa","Eurozona","Japón","Asia ex-Japón","Latam"],
-      RF: ["T - SD","T - MD","T - LD","TIPS - SD","TIPS - LD","IG","IG - SD","IG - LD","HY - SD","HY - LD","EMD LC","EMD HC","Caja"],
-      FX: ["EURUSD","USDYEN"]
+      RV: ["EE. UU.", "Europa", "Eurozona", "Japón", "Asia ex-Japón", "Latam"],
+      RF: ["T - SD", "T - MD", "T - LD", "TIPS - SD", "TIPS - LD", "IG", "IG - SD", "IG - LD", "HY - SD", "HY - LD", "EMD LC", "EMD HC", "Caja"],
+      FX: ["EURUSD", "USDYEN"]
     };
 
-    // Parser de fechas flexible: acepta DD/MM/YYYY y YYYY-MM-DD
+    const RETURN_ASSET_ORDER = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX];
+
     function parseDateFlexible(s) {
       const str = (s || "").trim();
-      if (str === "") return new Date(NaN);
+      if (!str) return new Date(NaN);
 
-      // YYYY-MM-DD
       let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(str);
       if (m) {
-        const yyyy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
-        return new Date(Date.UTC(yyyy, mm-1, dd));
+        return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
       }
-      // DD/MM/YYYY
+
       m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
       if (m) {
-        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
-        return new Date(Date.UTC(yyyy, mm-1, dd));
+        return new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
       }
-      // fallback inválido
+
       return new Date(NaN);
     }
 
-    function toISODate(d) { return d.toISOString().slice(0,10); }
-    function fmtPct(x, digits=2) { return isFinite(x) ? (x*100).toFixed(digits) + "%" : "—"; }
-    function fmtNum(x, digits=6) { return isFinite(x) ? x.toFixed(digits) : "—"; }
-
-    // CSV parser robusto: ;, BOM, comillas, ; finales
-    function parseCSV(text, delimiter=";") {
-      const cleaned = text.replace(/^\uFEFF/, "");
-      const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length>0);
-      if (lines.length === 0) return { headers:[], rows:[] };
-
-      const parseLine = (line) => {
-        const out = [];
-        let cur = "";
-        let inQuotes = false;
-        for (let i=0; i<line.length; i++) {
-          const ch = line[i];
-          if (ch === '"') {
-            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
-            else { inQuotes = !inQuotes; }
-          } else if (ch === delimiter && !inQuotes) {
-            out.push(cur); cur = "";
-          } else {
-            cur += ch;
-          }
-        }
-        out.push(cur);
-        return out.map(s => s.trim());
-      };
-
-      let headers = parseLine(lines[0]);
-      if (headers.length && headers[headers.length-1] === "") headers.pop();
-
-      const rows = [];
-      for (let i=1; i<lines.length; i++) {
-        const parts = parseLine(lines[i]);
-        const obj = {};
-        for (let j=0; j<headers.length; j++) obj[headers[j]] = (parts[j] ?? "").trim();
-        rows.push(obj);
-      }
-      return { headers, rows };
+    function toISODate(d) {
+      return d.toISOString().slice(0, 10);
     }
 
     function toNumberCell(s) {
       if (s === null || s === undefined) return NaN;
       const v = String(s).replace(",", ".").trim();
-      if (v === "" || v.toLowerCase() === "nan") return NaN;
+      if (!v || v.toLowerCase() === "nan") return NaN;
       const x = Number(v);
-      return isNaN(x) ? NaN : x;
+      return Number.isNaN(x) ? NaN : x;
     }
 
-    // Diagnóstico helpers
-    function setStatus(text) { document.getElementById('loadStatus').textContent = text; }
+    function toBps(x) {
+      return Number.isFinite(x) ? x * 10000 : NaN;
+    }
+
+    function toBpsArray(arr) {
+      const out = new Array(arr.length);
+      for (let i = 0; i < arr.length; i++) out[i] = toBps(arr[i]);
+      return out;
+    }
+
+    function fmtBps(x, digits = 0) {
+      if (!Number.isFinite(x)) return "—";
+      return `${x.toFixed(digits)} bps`;
+    }
+
+    function fmtPct(x, digits = 2) {
+      if (!Number.isFinite(x)) return "—";
+      return `${(x * 100).toFixed(digits)}%`;
+    }
+
+    function fmtNum(x, digits = 6) {
+      if (!Number.isFinite(x)) return "—";
+      return x.toFixed(digits);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function parseCSV(text, delimiter = ";") {
+      const cleaned = text.replace(/^\uFEFF/, "");
+      const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (!lines.length) return { headers: [], rows: [] };
+
+      const parseLine = (line) => {
+        const out = [];
+        let cur = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === delimiter && !inQuotes) {
+            out.push(cur);
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+
+        out.push(cur);
+        return out.map(s => s.trim());
+      };
+
+      const headers = parseLine(lines[0]).filter((h, idx, arr) => !(idx === arr.length - 1 && h === ""));
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = parseLine(lines[i]);
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) obj[headers[j]] = (parts[j] ?? "").trim();
+        rows.push(obj);
+      }
+
+      return { headers, rows };
+    }
+
+    function setStatus(text) {
+      document.getElementById("loadStatus").textContent = text;
+    }
+
     function appendDiag(msgObj) {
-      const pre = document.getElementById('diagBox');
-      const line = (typeof msgObj === 'string') ? msgObj : JSON.stringify(msgObj, null, 2);
+      const pre = document.getElementById("diagBox");
+      const line = typeof msgObj === "string" ? msgObj : JSON.stringify(msgObj, null, 2);
       pre.textContent = (pre.textContent === "—" ? "" : pre.textContent + "\n") + line;
       console.log("[Diag]", msgObj);
+    }
+
+    function getThemeColors() {
+      return {
+        panel: getComputedStyle(document.documentElement).getPropertyValue("--panel").trim(),
+        text: getComputedStyle(document.documentElement).getPropertyValue("--text").trim(),
+        grid: getComputedStyle(document.documentElement).getPropertyValue("--grid").trim(),
+        muted: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim()
+      };
+    }
+
+    function emptyLayout(message) {
+      const c = getThemeColors();
+      return {
+        paper_bgcolor: c.panel,
+        plot_bgcolor: c.panel,
+        font: { color: c.text },
+        margin: { l: 55, r: 20, t: 10, b: 45 },
+        xaxis: { visible: false },
+        yaxis: { visible: false },
+        showlegend: false,
+        annotations: [{
+          text: message,
+          x: 0.5,
+          y: 0.5,
+          xref: "paper",
+          yref: "paper",
+          showarrow: false,
+          font: { color: c.muted, size: 13 }
+        }]
+      };
     }
 
     // =============================
@@ -390,139 +694,215 @@
       focusVector: null,
       dateFrom: null,
       dateTo: null,
+      visibility: {
+        indexed: new Set(),
+        returnBars: new Set(),
+        waterfall: new Set()
+      }
     };
 
+    function getOrderedReturnAssets() {
+      return RETURN_ASSET_ORDER.filter(a => Object.prototype.hasOwnProperty.call(state.returnsByAsset, a));
+    }
+
+    function getFocusVectorAssetsOrdered() {
+      const v = state.focusVector;
+      if (!v || !state.vectors[v]) return [];
+      const assetsInVector = new Set(Object.keys(state.vectors[v].gapsByAsset));
+      return RETURN_ASSET_ORDER.filter(a => assetsInVector.has(a));
+    }
+
+    function ensureVisibilityDefaults() {
+      const allReturnAssets = getOrderedReturnAssets();
+      if (!state.visibility.indexed || !state.visibility.indexed.size) state.visibility.indexed = new Set(allReturnAssets);
+      if (!state.visibility.returnBars || !state.visibility.returnBars.size) state.visibility.returnBars = new Set(allReturnAssets);
+      const wfAssets = getFocusVectorAssetsOrdered();
+      if (!state.visibility.waterfall || !state.visibility.waterfall.size) state.visibility.waterfall = new Set(wfAssets);
+    }
+
+    function restoreChartVisibility(chartKey) {
+      if (chartKey === "waterfall") {
+        state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
+      } else {
+        state.visibility[chartKey] = new Set(getOrderedReturnAssets());
+      }
+      renderAll();
+    }
+
+    function setChartGroupVisibility(chartKey, group) {
+      if (chartKey === "waterfall") {
+        const all = getFocusVectorAssetsOrdered();
+        if (group === "ALL") {
+          state.visibility.waterfall = new Set(all);
+        } else {
+          state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
+        }
+      } else {
+        const all = getOrderedReturnAssets();
+        if (group === "ALL") {
+          state.visibility[chartKey] = new Set(all);
+        } else {
+          state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
+        }
+      }
+      renderAll();
+    }
+
+    function toggleChartAsset(chartKey, asset) {
+      const current = state.visibility[chartKey] || new Set();
+      if (current.has(asset)) current.delete(asset);
+      else current.add(asset);
+      state.visibility[chartKey] = current;
+      renderAll();
+    }
+
+    function renderWaterfallChips() {
+      const container = document.getElementById("waterfallChips");
+      if (!container) return;
+      const all = getFocusVectorAssetsOrdered();
+      const visible = state.visibility.waterfall || new Set(all);
+
+      if (!all.length) {
+        container.innerHTML = `<span class="small">Sin activos para el vector foco actual</span>`;
+        return;
+      }
+
+      const visibleAssets = all.filter(a => visible.has(a));
+      if (!visibleAssets.length) {
+        container.innerHTML = `<span class="small">Sin activos visibles. Usa “Restaurar todos”.</span>`;
+        return;
+      }
+
+      container.innerHTML = visibleAssets.map(a => {
+        return `<button type="button" class="asset-chip active" data-action="toggle-asset" data-chart="waterfall" data-asset="${escapeHtml(a)}">${escapeHtml(a)}</button>`;
+      }).join("");
+    }
+
     // =============================
-    // CARGA (con timeout y no-store)
+    // CARGA Y PARSING
     // =============================
     function fetchWithTimeout(url, ms = 30000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
-      return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
-        .finally(() => clearTimeout(t));
+      return fetch(url, { signal: ctrl.signal, cache: "no-store" }).finally(() => clearTimeout(t));
     }
 
     async function loadCSVFiles() {
       setStatus("Cargando trackrecord.csv…");
-      const trResp = await fetchWithTimeout("trackrecord.csv");
+      const trResp = await fetchWithTimeout("./trackrecord.csv");
       if (!trResp.ok) throw new Error("Error cargando trackrecord.csv (HTTP " + trResp.status + ")");
       const trText = await trResp.text();
-      appendDiag({trackrecord_size: trText.length});
+      appendDiag({ trackrecord_size: trText.length });
 
       setStatus("Cargando gaps.csv…");
-      const gpResp = await fetchWithTimeout("gaps.csv");
+      const gpResp = await fetchWithTimeout("./gaps.csv");
       if (!gpResp.ok) throw new Error("Error cargando gaps.csv (HTTP " + gpResp.status + ")");
       const gpText = await gpResp.text();
-      appendDiag({gaps_size: gpText.length});
+      appendDiag({ gaps_size: gpText.length });
 
       const track = parseCSV(trText, ";");
       const gaps = parseCSV(gpText, ";");
 
-      if (track.headers.length === 0) throw new Error("trackrecord.csv vacío o sin headers");
-      if (gaps.headers.length === 0) throw new Error("gaps.csv vacío o sin headers");
+      if (!track.headers.length) throw new Error("trackrecord.csv vacío o sin headers");
+      if (!gaps.headers.length) throw new Error("gaps.csv vacío o sin headers");
 
-      appendDiag({track_headers: track.headers});
-      appendDiag({gaps_headers_count: gaps.headers.length});
-
-      // --- fechas ---
       const trDateCol = track.headers[0];
       const gpDateCol = gaps.headers[0];
 
       const trDates = track.rows.map(r => parseDateFlexible(r[trDateCol]));
       const gpDates = gaps.rows.map(r => parseDateFlexible(r[gpDateCol]));
 
-      if (trDates.some(d => isNaN(d))) {
+      if (trDates.some(d => Number.isNaN(d.getTime()))) {
         throw new Error("Fecha inválida en trackrecord.csv. Formatos válidos: DD/MM/YYYY o YYYY-MM-DD");
       }
-      if (gpDates.some(d => isNaN(d))) {
+      if (gpDates.some(d => Number.isNaN(d.getTime()))) {
         throw new Error("Fecha inválida en gaps.csv. Formatos válidos: DD/MM/YYYY o YYYY-MM-DD");
       }
 
       const trISO = trDates.map(toISODate);
       const gpISO = gpDates.map(toISODate);
 
-      appendDiag({track_rows: track.rows.length, gaps_rows: gaps.rows.length});
-      appendDiag({track_date_min: trISO[0], track_date_max: trISO[trISO.length-1]});
-      appendDiag({gaps_date_min: gpISO[0], gaps_date_max: gpISO[gpISO.length-1]});
-
-      // Intersección (orden de trackrecord)
       const setGP = new Set(gpISO);
       const common = [];
-      for (let i=0; i<trISO.length; i++) if (setGP.has(trISO[i])) common.push(trISO[i]);
-      if (common.length === 0) throw new Error("No hay fechas comunes entre trackrecord y gaps");
+      for (let i = 0; i < trISO.length; i++) {
+        if (setGP.has(trISO[i])) common.push(trISO[i]);
+      }
+      if (!common.length) throw new Error("No hay fechas comunes entre trackrecord y gaps");
 
-      const commonISO = Array.from(new Set(common)); // unicidad manteniendo orden
-      const commonDateObjs = commonISO.map(s => new Date(s+"T00:00:00Z"));
+      const commonISO = Array.from(new Set(common));
+      const commonDateObjs = commonISO.map(s => new Date(s + "T00:00:00Z"));
+      const idxTR = new Map(trISO.map((d, i) => [d, i]));
+      const idxGP = new Map(gpISO.map((d, i) => [d, i]));
 
-      const idxTR = new Map(trISO.map((d,i) => [d, i]));
-      const idxGP = new Map(gpISO.map((d,i) => [d, i]));
-
-      // --- TRACKRECORD: precios -> retornos ---
       const validTickers = track.headers.slice(1).filter(h => TICKER_MAP[h] && !IGNORED_TRACK_COLS.has(h));
       const returnsByAsset = {};
       const groupsByAsset = {};
+
       validTickers.forEach(tk => {
         const { asset, group } = TICKER_MAP[tk];
         groupsByAsset[asset] = group;
+
         const prices = new Float64Array(commonISO.length);
-        for (let k=0; k<commonISO.length; k++) {
+        for (let k = 0; k < commonISO.length; k++) {
           const r = track.rows[idxTR.get(commonISO[k])];
           prices[k] = toNumberCell(r[tk]);
         }
+
         const rets = new Float64Array(commonISO.length);
         rets[0] = NaN;
-        for (let k=1; k<commonISO.length; k++) {
-          const p0 = prices[k-1], p1 = prices[k];
-          rets[k] = (isFinite(p0) && isFinite(p1) && p0 !== 0) ? (p1/p0 - 1) : 0;
+        for (let k = 1; k < commonISO.length; k++) {
+          const p0 = prices[k - 1], p1 = prices[k];
+          rets[k] = (Number.isFinite(p0) && Number.isFinite(p1) && p0 !== 0) ? (p1 / p0 - 1) : 0;
         }
         returnsByAsset[asset] = rets;
       });
 
-      // --- GAPS ---
-      const vectorCols = gaps.headers.slice(1);
       const vectors = {};
+      const vectorCols = gaps.headers.slice(1);
+
       for (const col of vectorCols) {
         if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
-        if (lastUnd <= 0 || lastUnd === col.length-1) {
+        if (lastUnd <= 0 || lastUnd === col.length - 1) {
           console.warn("Columna gaps sin separador válido '_':", col);
           continue;
         }
+
         const assetName = col.slice(0, lastUnd);
-        const vectorName = col.slice(lastUnd+1);
+        const vectorName = col.slice(lastUnd + 1);
+
         if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {} };
 
         const arr = new Float64Array(commonISO.length);
-        for (let k=0; k<commonISO.length; k++) {
+        for (let k = 0; k < commonISO.length; k++) {
           const r = gaps.rows[idxGP.get(commonISO[k])];
           const v = toNumberCell(r[col]);
-          arr[k] = isFinite(v) ? (v/10000) : 0;
+          arr[k] = Number.isFinite(v) ? (v / 10000) : 0;
         }
+
         vectors[vectorName].gapsByAsset[assetName] = arr;
       }
 
-      // Guardamos en estado
       state.dates = commonDateObjs;
       state.isoDates = commonISO;
       state.returnsByAsset = returnsByAsset;
       state.groupsByAsset = groupsByAsset;
       state.vectors = vectors;
-      state.vectorNames = Object.keys(vectors).sort((a,b)=>a.localeCompare(b,'es'));
+      state.vectorNames = Object.keys(vectors).sort((a, b) => a.localeCompare(b, "es"));
 
-      // Diagnóstico visible
-      document.getElementById('dateCount').textContent = commonISO.length;
-      document.getElementById('assetCount').textContent = Object.keys(returnsByAsset).length;
-      document.getElementById('vectorCount').textContent = state.vectorNames.length;
+      document.getElementById("dateCount").textContent = commonISO.length;
+      document.getElementById("assetCount").textContent = Object.keys(returnsByAsset).length;
+      document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
       appendDiag({
         common_dates: commonISO.length,
         assets_with_returns: Object.keys(returnsByAsset),
-        sample_vectors: state.vectorNames.slice(0, 10),
+        sample_vectors: state.vectorNames.slice(0, 10)
       });
     }
 
     // =============================
-    // PRE-CÁLCULOS (ALPHA, COMP, CONTRIB)
+    // PRE-CÁLCULOS
     // =============================
     function precomputeAll() {
       const N = state.isoDates.length;
@@ -538,12 +918,12 @@
         const compAlloc = new Float64Array(N);
         const compSelRV = new Float64Array(N);
         const compSelRF = new Float64Array(N);
-        const compFX   = new Float64Array(N);
+        const compFX = new Float64Array(N);
         const contribByAssetDaily = {};
         const assetsForVector = Object.keys(gapsByAsset);
         for (const a of assetsForVector) contribByAssetDaily[a] = new Float64Array(N);
 
-        for (let t=0; t<N; t++) {
+        for (let t = 0; t < N; t++) {
           let G_RV = 0, G_RF = 0;
           let nRV = 0, nRF = 0;
           let sumRetRV = 0, cntRetRV = 0;
@@ -552,43 +932,51 @@
 
           for (const a of allAssetsWithReturns) {
             const ret = state.returnsByAsset[a]?.[t];
-            if (!isFinite(ret)) continue;
+            if (!Number.isFinite(ret)) continue;
             if (RVset.has(a)) { sumRetRV += ret; cntRetRV++; }
             if (RFset.has(a)) { sumRetRF += ret; cntRetRF++; }
           }
-          const ewRV = cntRetRV>0 ? (sumRetRV / cntRetRV) : 0;
-          const ewRF = cntRetRF>0 ? (sumRetRF / cntRetRF) : 0;
+
+          const ewRV = cntRetRV > 0 ? (sumRetRV / cntRetRV) : 0;
+          const ewRF = cntRetRF > 0 ? (sumRetRF / cntRetRF) : 0;
 
           for (const a of assetsForVector) {
             const gap = gapsByAsset[a]?.[t] ?? 0;
             const ret = state.returnsByAsset[a]?.[t];
             const group = state.groupsByAsset[a] ?? (FXset.has(a) ? "FX" : (RVset.has(a) ? "RV" : (RFset.has(a) ? "RF" : "UNK")));
-            const c = (isFinite(gap) && isFinite(ret)) ? (gap * ret) : 0;
+            const c = (Number.isFinite(gap) && Number.isFinite(ret)) ? (gap * ret) : 0;
             contribByAssetDaily[a][t] = c;
-            if (group === "RV") { G_RV += (isFinite(gap)?gap:0); nRV++; }
-            else if (group === "RF") { G_RF += (isFinite(gap)?gap:0); nRF++; }
-            else if (group === "FX") { fxContrib += c; }
+
+            if (group === "RV") {
+              G_RV += (Number.isFinite(gap) ? gap : 0);
+              nRV++;
+            } else if (group === "RF") {
+              G_RF += (Number.isFinite(gap) ? gap : 0);
+              nRF++;
+            } else if (group === "FX") {
+              fxContrib += c;
+            }
           }
 
           const alloc = (G_RV * ewRV) + (G_RF * ewRF);
           let selRV = 0, selRF = 0;
-          const eqRV = (nRV>0 ? G_RV / nRV : 0);
-          const eqRF = (nRF>0 ? G_RF / nRF : 0);
+          const eqRV = nRV > 0 ? (G_RV / nRV) : 0;
+          const eqRF = nRF > 0 ? (G_RF / nRF) : 0;
 
           for (const a of assetsForVector) {
             const gap = gapsByAsset[a]?.[t] ?? 0;
             const ret = state.returnsByAsset[a]?.[t];
             const group = state.groupsByAsset[a] ?? "";
-            if (!isFinite(ret)) continue;
+            if (!Number.isFinite(ret)) continue;
             if (group === "RV") selRV += (gap - eqRV) * ret;
             if (group === "RF") selRF += (gap - eqRF) * ret;
           }
 
-          compAlloc[t] = (t===0 ? NaN : alloc);
-          compSelRV[t] = (t===0 ? NaN : selRV);
-          compSelRF[t] = (t===0 ? NaN : selRF);
-          compFX[t]    = (t===0 ? NaN : fxContrib);
-          alpha[t]     = (t===0 ? NaN : (alloc + selRV + selRF + fxContrib));
+          compAlloc[t] = (t === 0 ? NaN : alloc);
+          compSelRV[t] = (t === 0 ? NaN : selRV);
+          compSelRF[t] = (t === 0 ? NaN : selRF);
+          compFX[t] = (t === 0 ? NaN : fxContrib);
+          alpha[t] = (t === 0 ? NaN : (alloc + selRV + selRF + fxContrib));
         }
 
         perVector[vName] = {
@@ -599,7 +987,7 @@
       }
 
       state.perVector = perVector;
-      appendDiag({precompute_done_for_vectors: state.vectorNames.length});
+      appendDiag({ precompute_done_for_vectors: state.vectorNames.length });
     }
 
     // =============================
@@ -607,16 +995,19 @@
     // =============================
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
-      for (let i=0; i<dates.length; i++) {
+      for (let i = 0; i < dates.length; i++) {
         const d = dates[i];
         if ((fromDate ? d >= fromDate : true) && (toDate ? d <= toDate : true)) idx.push(i);
       }
       return idx;
     }
+
     function idxWindowByKey(key) {
       const dates = state.dates;
-      const last = dates[dates.length-1];
-      let from = null, to = last;
+      const last = dates[dates.length - 1];
+      let from = null;
+      const to = last;
+
       const addMonths = (date, m) => {
         const d = new Date(date.getTime());
         const origD = d.getUTCDate();
@@ -624,6 +1015,7 @@
         if (d.getUTCDate() !== origD) d.setUTCDate(0);
         return d;
       };
+
       switch (key) {
         case "1M": from = addMonths(last, -1); break;
         case "3M": from = addMonths(last, -3); break;
@@ -635,347 +1027,807 @@
         case "ALL": from = dates[0]; break;
         default: from = dates[0];
       }
+
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
     }
+
     function vectorSubarrayByIdx(typedArr, idxs) {
       const out = new Float64Array(idxs.length);
-      for (let k=0; k<idxs.length; k++) out[k] = typedArr[idxs[k]];
+      for (let k = 0; k < idxs.length; k++) out[k] = typedArr[idxs[k]];
       return out;
     }
+
     function cumulativeSum(arr) {
       const out = new Float64Array(arr.length);
       let acc = 0;
-      for (let i=0; i<arr.length; i++) {
+      for (let i = 0; i < arr.length; i++) {
         const v = arr[i];
-        if (isFinite(v)) { acc += v; out[i] = acc; }
-        else out[i] = NaN;
+        if (Number.isFinite(v)) {
+          acc += v;
+          out[i] = acc;
+        } else {
+          out[i] = NaN;
+        }
       }
       return out;
     }
+
     function drawdownFromCumulative(cum) {
       const out = new Float64Array(cum.length);
       let peak = -Infinity;
-      for (let i=0; i<cum.length; i++) {
+      for (let i = 0; i < cum.length; i++) {
         const v = cum[i];
-        if (!isFinite(v)) { out[i] = NaN; continue; }
+        if (!Number.isFinite(v)) {
+          out[i] = NaN;
+          continue;
+        }
         peak = Math.max(peak, v);
         out[i] = v - peak;
       }
       return out;
     }
-    function arrayMean(arr) { let s=0,c=0; for (const v of arr) if (isFinite(v)) { s+=v; c++; } return c? s/c : NaN; }
+
+    function arrayMean(arr) {
+      let s = 0, c = 0;
+      for (const v of arr) {
+        if (Number.isFinite(v)) { s += v; c++; }
+      }
+      return c ? s / c : NaN;
+    }
+
     function arrayStd(arr) {
-      const m = arrayMean(arr); if (!isFinite(m)) return NaN;
-      let s=0,c=0; for (const v of arr) if (isFinite(v)) { const d=v-m; s+=d*d; c++; }
-      return c>1 ? Math.sqrt(s/(c-1)) : NaN;
+      const m = arrayMean(arr);
+      if (!Number.isFinite(m)) return NaN;
+      let s = 0, c = 0;
+      for (const v of arr) {
+        if (Number.isFinite(v)) {
+          const d = v - m;
+          s += d * d;
+          c++;
+        }
+      }
+      return c > 1 ? Math.sqrt(s / (c - 1)) : NaN;
     }
+
     function downsideStd(arr) {
-      const neg = arr.filter(v => isFinite(v) && v<0);
-      if (neg.length<=1) return NaN;
-      let s=0; for (const v of neg) s += v*v;
-      return Math.sqrt(s/(neg.length-1));
+      const neg = arr.filter(v => Number.isFinite(v) && v < 0);
+      if (neg.length <= 1) return NaN;
+      let s = 0;
+      for (const v of neg) s += v * v;
+      return Math.sqrt(s / (neg.length - 1));
     }
+
     function maxDrawdown(cum) {
-      let peak = -Infinity, maxDD = 0;
-      for (const v of cum) { if (!isFinite(v)) continue; peak = Math.max(peak, v); maxDD = Math.max(maxDD, peak - v); }
+      let peak = -Infinity;
+      let maxDD = 0;
+      for (const v of cum) {
+        if (!Number.isFinite(v)) continue;
+        peak = Math.max(peak, v);
+        maxDD = Math.max(maxDD, peak - v);
+      }
       return -maxDD;
     }
+
     function metricsForSeries(alphaWindow) {
       const cum = cumulativeSum(alphaWindow);
       const vol = arrayStd(alphaWindow);
       const mu = arrayMean(alphaWindow);
       const dstd = downsideStd(alphaWindow);
-      const annVol = isFinite(vol) ? vol * ANN_FACTOR : NaN;
-      const IR = (isFinite(mu)&&isFinite(vol)&&vol>0) ? (mu/vol)*ANN_FACTOR : NaN;
-      const Sortino = (isFinite(mu)&&isFinite(dstd)&&dstd>0) ? (mu/dstd)*ANN_FACTOR : NaN;
-      const hit = (() => { let pos=0,c=0; for (const v of alphaWindow) if (isFinite(v)) { if (v>0) pos++; c++; } return c? (pos/c) : NaN; })();
+      const annVol = Number.isFinite(vol) ? vol * ANN_FACTOR : NaN;
+      const IR = (Number.isFinite(mu) && Number.isFinite(vol) && vol > 0) ? (mu / vol) * ANN_FACTOR : NaN;
+      const Sortino = (Number.isFinite(mu) && Number.isFinite(dstd) && dstd > 0) ? (mu / dstd) * ANN_FACTOR : NaN;
+      const hit = (() => {
+        let pos = 0, c = 0;
+        for (const v of alphaWindow) {
+          if (Number.isFinite(v)) {
+            if (v > 0) pos++;
+            c++;
+          }
+        }
+        return c ? (pos / c) : NaN;
+      })();
       const MDD = maxDrawdown(cum);
-      const total = cum[cum.length-1];
+      const total = cum[cum.length - 1];
       return { total, annVol, IR, Sortino, hit, MDD };
     }
 
-    // =============================
-    // PLOTLY (render)
-    // =============================
-    function baseLayout(title="") {
-      return {
-        title: { text: title, font: { size: 12 }, x: 0, xanchor: 'left' },
-        paper_bgcolor: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim(),
-        plot_bgcolor: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim(),
-        font: { color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() },
-        margin: { l: 50, r: 20, t: 30, b: 40 },
-        hovermode: 'x unified',
-        xaxis: { showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(), zeroline: false },
-        yaxis: { showgrid: true, gridcolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(), zeroline: true, zerolinecolor: getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() },
-        showlegend: true, legend: { orientation: 'h', x: 0, y: 1.1 }
-      };
+    function sumAtIdx(arr, idxs) {
+      let s = 0;
+      for (const i of idxs) {
+        const v = arr[i];
+        if (Number.isFinite(v)) s += v;
+      }
+      return s;
     }
-    function palette(i) {
-      const colors = ["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2","#ca8a04","#ef4444","#22c55e","#60a5fa","#f472b6","#84cc16"];
-      return colors[i % colors.length];
-    }
-    function currentWindowIdxs() {
-      if (state.dateFrom || state.dateTo) return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
+
+    function getCurrentWindowIdxs() {
+      if (state.dateFrom || state.dateTo) {
+        return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
+      }
       return idxWindowByKey("ALL");
     }
-    function selectedVectorsList() { return state.selectedVectors.length ? state.selectedVectors : []; }
 
+    function selectedVectorsList() {
+      return state.selectedVectors.length ? state.selectedVectors : [];
+    }
+
+    // =============================
+    // PLOTLY BASE
+    // =============================
+    function baseLayout(title = "") {
+      const c = getThemeColors();
+      return {
+        title: { text: title, font: { size: 12 }, x: 0, xanchor: "left" },
+        paper_bgcolor: c.panel,
+        plot_bgcolor: c.panel,
+        font: { color: c.text },
+        margin: { l: 55, r: 20, t: 30, b: 45 },
+        hovermode: "x unified",
+        xaxis: {
+          showgrid: true,
+          gridcolor: c.grid,
+          zeroline: false
+        },
+        yaxis: {
+          showgrid: true,
+          gridcolor: c.grid,
+          zeroline: true,
+          zerolinecolor: c.grid
+        },
+        showlegend: true,
+        legend: { orientation: "h", x: 0, y: 1.1 }
+      };
+    }
+
+    function palette(i) {
+      const colors = [
+        "#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2",
+        "#ca8a04", "#ef4444", "#22c55e", "#60a5fa", "#f472b6", "#84cc16"
+      ];
+      return colors[i % colors.length];
+    }
+
+    function bindLegendToggle(chartId, chartKey) {
+      const gd = document.getElementById(chartId);
+      if (!gd || gd.__legendToggleBound || typeof gd.on !== "function") return;
+
+      gd.on("plotly_legendclick", (ev) => {
+        const trace = ev?.data?.[ev.curveNumber];
+        const asset = trace?.name;
+        if (!asset) return false;
+        toggleChartAsset(chartKey, asset);
+        return false;
+      });
+
+      gd.__legendToggleBound = true;
+    }
+
+    // =============================
+    // GRÁFICAS
+    // =============================
     function plotCumulative() {
-      if (!window.Plotly) { console.warn("Plotly no está cargado"); return; }
-      const idxs = currentWindowIdxs();
+      if (!window.Plotly) return;
+
+      const idxs = getCurrentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
       const sel = selectedVectorsList();
-      for (let i=0;i<sel.length;i++) {
+
+      for (let i = 0; i < sel.length; i++) {
         const v = sel[i];
         const alpha = state.perVector[v].alpha;
         const aw = vectorSubarrayByIdx(alpha, idxs);
-        const cum = cumulativeSum(aw);
+        const awBps = toBpsArray(Array.from(aw));
+        const cum = cumulativeSum(Float64Array.from(awBps));
+
         traces.push({
-          type: 'scatter', mode: 'lines', name: v, x, y: cum,
+          type: "scatter",
+          mode: "lines",
+          name: v,
+          x,
+          y: Array.from(cum),
           line: { color: palette(i), width: 2 },
-          hovertemplate: '%{x|%d-%m-%Y}<br>Alpha diario: %{customdata[0]:.6f}<br>Cumul.: %{y:.6f}<extra>'+v+'</extra>',
-          customdata: Array.from(aw).map(a => [isFinite(a)?a:NaN])
+          customdata: Array.from(awBps),
+          hovertemplate: "%{x|%d-%m-%Y}<br>Alpha diario: %{customdata:.0f} bps<br>Cumul.: %{y:.0f} bps<extra>" + v + "</extra>"
         });
       }
-      const layout = baseLayout('');
-      layout.yaxis.title = 'Alpha acumulado';
-      Plotly.react('chartCumulative', traces, layout, {displayModeBar: false, responsive: true});
+
+      const layout = baseLayout("");
+      layout.yaxis.title = "Alpha acumulado (bps)";
+      layout.yaxis.ticksuffix = " bps";
+
+      Plotly.react("chartCumulative", traces, layout, { displayModeBar: false, responsive: true });
     }
+
     function plotDrawdown() {
       if (!window.Plotly) return;
-      const idxs = currentWindowIdxs();
+
+      const idxs = getCurrentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
       const sel = selectedVectorsList();
-      for (let i=0;i<sel.length;i++) {
+
+      for (let i = 0; i < sel.length; i++) {
         const v = sel[i];
         const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
-        const dd = drawdownFromCumulative(cumulativeSum(aw));
-        traces.push({ type: 'scatter', mode: 'lines', name: v, x, y: dd, line: { color: palette(i), width: 2 },
-          hovertemplate: '%{x|%d-%m-%Y}<br>Drawdown: %{y:.6f}<extra>'+v+'</extra>' });
+        const awBps = toBpsArray(Array.from(aw));
+        const cum = cumulativeSum(Float64Array.from(awBps));
+        const dd = drawdownFromCumulative(cum);
+
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          name: v,
+          x,
+          y: Array.from(dd),
+          line: { color: palette(i), width: 2 },
+          hovertemplate: "%{x|%d-%m-%Y}<br>Drawdown: %{y:.0f} bps<extra>" + v + "</extra>"
+        });
       }
-      const layout = baseLayout(''); layout.yaxis.title = 'Drawdown (desde pico)';
-      Plotly.react('chartDrawdown', traces, layout, {displayModeBar: false, responsive: true});
+
+      const layout = baseLayout("");
+      layout.yaxis.title = "Drawdown (bps)";
+      layout.yaxis.ticksuffix = " bps";
+
+      Plotly.react("chartDrawdown", traces, layout, { displayModeBar: false, responsive: true });
     }
+
+    function computeIndexedSeries(asset, idxs) {
+      const returns = state.returnsByAsset[asset];
+      if (!returns || !idxs.length) return [];
+
+      const out = new Array(idxs.length);
+      let index = 100;
+      out[0] = 100;
+
+      for (let j = 1; j < idxs.length; j++) {
+        const r = returns[idxs[j]];
+        if (Number.isFinite(r)) index = index * (1 + r);
+        out[j] = index;
+      }
+      return out;
+    }
+
+    function computeAccumulatedReturn(asset, idxs) {
+      const returns = state.returnsByAsset[asset];
+      if (!returns || !idxs.length) return NaN;
+
+      let acc = 1;
+      for (let j = 1; j < idxs.length; j++) {
+        const r = returns[idxs[j]];
+        if (Number.isFinite(r)) acc *= (1 + r);
+      }
+      return acc - 1;
+    }
+
+    function renderIndexedReturnsChart() {
+      if (!window.Plotly) return;
+
+      const idxs = getCurrentWindowIdxs();
+      const allAssets = getOrderedReturnAssets();
+      const visible = state.visibility.indexed || new Set(allAssets);
+      const visibleAssets = allAssets.filter(a => visible.has(a));
+
+      if (!visibleAssets.length || !idxs.length) {
+        Plotly.react("chartIndexed", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const traces = visibleAssets.map((asset, i) => {
+        const series = computeIndexedSeries(asset, idxs);
+        const dailyReturns = idxs.map((ix, j) => j === 0 ? NaN : state.returnsByAsset[asset][ix]);
+
+        return {
+          type: "scatter",
+          mode: "lines",
+          name: asset,
+          x: idxs.map(i => state.dates[i]),
+          y: series,
+          line: { width: 2, color: palette(i) },
+          customdata: dailyReturns,
+          hovertemplate: "%{x|%d-%m-%Y}<br>Retorno diario: %{customdata:.2%}<br>Índice: %{y:.2f}<extra>" + asset + "</extra>"
+        };
+      });
+
+      const layout = baseLayout("");
+      layout.yaxis.title = "Índice (Base 100)";
+      layout.xaxis.title = "Fecha";
+
+      Plotly.react("chartIndexed", traces, layout, { displayModeBar: false, responsive: true });
+      bindLegendToggle("chartIndexed", "indexed");
+    }
+
+    function renderReturnBarsChart() {
+      if (!window.Plotly) return;
+
+      const idxs = getCurrentWindowIdxs();
+      const allAssets = getOrderedReturnAssets();
+      const visible = state.visibility.returnBars || new Set(allAssets);
+      const visibleAssets = allAssets.filter(a => visible.has(a));
+
+      if (!visibleAssets.length || !idxs.length) {
+        Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const data = visibleAssets.map(asset => ({ asset, ret: computeAccumulatedReturn(asset, idxs) }))
+        .sort((a, b) => b.ret - a.ret);
+
+      const traces = data.map((d, i) => ({
+        type: "bar",
+        orientation: "h",
+        name: d.asset,
+        x: [d.ret],
+        y: [d.asset],
+        marker: { color: palette(i) },
+        hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
+      }));
+
+      const layout = baseLayout("");
+      layout.xaxis.title = "Retorno acumulado";
+      layout.xaxis.tickformat = ".0%";
+      layout.xaxis.zeroline = true;
+      const maxAbs = Math.max(1e-9, ...data.map(d => Math.abs(d.ret) || 0));
+      layout.xaxis.range = [-maxAbs * 1.15, maxAbs * 1.15];
+      layout.yaxis.title = "Asset class";
+      layout.yaxis.categoryorder = "array";
+      layout.yaxis.categoryarray = data.map(d => d.asset);
+      layout.yaxis.autorange = "reversed";
+
+      Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
+      bindLegendToggle("chartReturnBars", "returnBars");
+    }
+
     function aggregateContribByAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const agg = {};
       for (const a of Object.keys(daily)) {
-        let s=0; for (const i of idxs) { const v = daily[a][i]; if (isFinite(v)) s += v; }
+        let s = 0;
+        for (const i of idxs) {
+          const v = daily[a][i];
+          if (Number.isFinite(v)) s += v;
+        }
         agg[a] = s;
       }
       return agg;
     }
+
     function plotWaterfall() {
       if (!window.Plotly) return;
-      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartWaterfall', [], baseLayout('')); return; }
-      const idxs = currentWindowIdxs();
+
+      const v = state.focusVector;
+      if (!v || !state.perVector[v]) {
+        Plotly.react("chartWaterfall", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
+        document.getElementById("wfVector").textContent = "";
+        return;
+      }
+
+      const idxs = getCurrentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-      const orderAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX].filter(a => a in agg);
+      const allFocusAssets = getFocusVectorAssetsOrdered();
+      const visible = state.visibility.waterfall || new Set(allFocusAssets);
+      const orderAssets = allFocusAssets.filter(a => visible.has(a) && Object.prototype.hasOwnProperty.call(agg, a));
+
+      if (!orderAssets.length || !idxs.length) {
+        Plotly.react("chartWaterfall", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
+        document.getElementById("wfVector").textContent = `Vector: ${v}`;
+        return;
+      }
+
       const x = orderAssets.slice();
-      const y = orderAssets.map(a => agg[a]);
-      const measures = new Array(x.length).fill('relative');
-      x.push("Total"); const total = y.reduce((s,v)=>s+v,0); y.push(total); measures.push('total');
+      const y = orderAssets.map(a => toBps(agg[a]));
+      const measures = new Array(x.length).fill("relative");
+
+      x.push("Total");
+      const total = y.reduce((s, val) => s + val, 0);
+      y.push(total);
+      measures.push("total");
+
       const trace = {
-        type:'waterfall', x, y, measure: measures,
-        text: y.map(v => fmtNum(v,6)), textposition:'outside',
-        connector:{ line:{ color:getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() }},
-        decreasing:{ marker:{ color:'#ef4444' }}, increasing:{ marker:{ color:'#16a34a' }}, totals:{ marker:{ color:'#2563eb' }},
-        hovertemplate: '%{x}<br>Contribución: %{y:.6f}<extra></extra>'
+        type: "waterfall",
+        x,
+        y,
+        measure: measures,
+        text: y.map(vv => fmtNum(vv, 0)),
+        textposition: "outside",
+        connector: { line: { color: getThemeColors().grid } },
+        decreasing: { marker: { color: "#ef4444" } },
+        increasing: { marker: { color: "#16a34a" } },
+        totals: { marker: { color: "#2563eb" } },
+        hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
       };
-      const layout = baseLayout(''); layout.showlegend=false; layout.yaxis.title='Contribución acumulada';
-      document.getElementById('wfVector').textContent = `Vector: ${v}`;
-      Plotly.react('chartWaterfall', [trace], layout, {displayModeBar:false, responsive:true});
+
+      const layout = baseLayout("");
+      layout.showlegend = false;
+      layout.yaxis.title = "Contribución acumulada (bps)";
+      layout.yaxis.ticksuffix = " bps";
+
+      Plotly.react("chartWaterfall", [trace], layout, { displayModeBar: false, responsive: true });
+      document.getElementById("wfVector").textContent = `Vector: ${v}`;
     }
+
     function plotDecomposition() {
       if (!window.Plotly) return;
-      const idxs = currentWindowIdxs();
+
+      const idxs = getCurrentWindowIdxs();
       const sel = selectedVectorsList();
-      if (!sel.length) { Plotly.react('chartDecomposition', [], baseLayout('')); return; }
+
+      if (!sel.length || !idxs.length) {
+        Plotly.react("chartDecomposition", [], emptyLayout("No hay vectores seleccionados"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
       const components = sel.map(v => {
         const c = state.perVector[v].compDaily;
-        const sA = idxs.reduce((s,i)=> s + (isFinite(c.alloc[i])?c.alloc[i]:0), 0);
-        const sRV = idxs.reduce((s,i)=> s + (isFinite(c.selRV[i])?c.selRV[i]:0), 0);
-        const sRF = idxs.reduce((s,i)=> s + (isFinite(c.selRF[i])?c.selRF[i]:0), 0);
-        const sFX = idxs.reduce((s,i)=> s + (isFinite(c.fx[i])?c.fx[i]:0), 0);
+        const sA = toBps(sumAtIdx(c.alloc, idxs));
+        const sRV = toBps(sumAtIdx(c.selRV, idxs));
+        const sRF = toBps(sumAtIdx(c.selRF, idxs));
+        const sFX = toBps(sumAtIdx(c.fx, idxs));
         return { v, sA, sRV, sRF, sFX };
       });
+
       const x = components.map(c => c.v);
-      const trAlloc = { type:'bar', name:'Allocation', x, y: components.map(c=>c.sA),  marker:{color:'#60a5fa'}, hovertemplate:'Allocation: %{y:.6f}<extra></extra>' };
-      const trSelRV = { type:'bar', name:'Selection RV', x, y: components.map(c=>c.sRV), marker:{color:'#34d399'}, hovertemplate:'Selection RV: %{y:.6f}<extra></extra>' };
-      const trSelRF = { type:'bar', name:'Selection RF', x, y: components.map(c=>c.sRF), marker:{color:'#f59e0b'}, hovertemplate:'Selection RF: %{y:.6f}<extra></extra>' };
-      const trFX    = { type:'bar', name:'FX',          x, y: components.map(c=>c.sFX), marker:{color:'#a78bfa'}, hovertemplate:'FX: %{y:.6f}<extra></extra>' };
-      const layout = baseLayout(''); layout.barmode='stack'; layout.yaxis.title='Contribución acumulada';
-      Plotly.react('chartDecomposition', [trAlloc, trSelRV, trSelRF, trFX], layout, {displayModeBar:false, responsive:true});
+      const trAlloc = { type: "bar", name: "Allocation", x, y: components.map(c => c.sA), marker: { color: "#60a5fa" }, hovertemplate: "Allocation: %{y:.0f} bps<extra></extra>" };
+      const trSelRV = { type: "bar", name: "Selection RV", x, y: components.map(c => c.sRV), marker: { color: "#34d399" }, hovertemplate: "Selection RV: %{y:.0f} bps<extra></extra>" };
+      const trSelRF = { type: "bar", name: "Selection RF", x, y: components.map(c => c.sRF), marker: { color: "#f59e0b" }, hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>" };
+      const trFX = { type: "bar", name: "FX", x, y: components.map(c => c.sFX), marker: { color: "#a78bfa" }, hovertemplate: "FX: %{y:.0f} bps<extra></extra>" };
+
+      const layout = baseLayout("");
+      layout.barmode = "stack";
+      layout.yaxis.title = "Contribución acumulada (bps)";
+      layout.yaxis.ticksuffix = " bps";
+
+      Plotly.react("chartDecomposition", [trAlloc, trSelRV, trSelRF, trFX], layout, { displayModeBar: false, responsive: true });
     }
+
     function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
-      const monthKeys = []; const keyToIdx = new Map();
+      const monthKeys = [];
+      const keyToIdx = new Map();
+
       for (const i of idxs) {
         const d = state.dates[i];
-        const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
-        if (!keyToIdx.has(key)) { keyToIdx.set(key, monthKeys.length); monthKeys.push(key); }
-      }
-      const assetList = Object.keys(daily);
-      const orderedAssets = [...ASSETS_BY_GROUP.RV, ...ASSETS_BY_GROUP.RF, ...ASSETS_BY_GROUP.FX].filter(a => assetList.includes(a));
-      const Z = orderedAssets.map(_ => new Array(monthKeys.length).fill(0));
-      for (let ai=0; ai<orderedAssets.length; ai++) {
-        const a = orderedAssets[ai]; const arr = daily[a]; if (!arr) continue;
-        for (const i of idxs) {
-          const d = state.dates[i];
-          const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
-          const mj = keyToIdx.get(key);
-          const v = arr[i]; if (isFinite(v)) Z[ai][mj] += v;
+        const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+        if (!keyToIdx.has(key)) {
+          keyToIdx.set(key, monthKeys.length);
+          monthKeys.push(key);
         }
       }
+
+      const assetList = Object.keys(daily);
+      const orderedAssets = RETURN_ASSET_ORDER.filter(a => assetList.includes(a));
+      const Z = orderedAssets.map(_ => new Array(monthKeys.length).fill(0));
+
+      for (let ai = 0; ai < orderedAssets.length; ai++) {
+        const a = orderedAssets[ai];
+        const arr = daily[a];
+        if (!arr) continue;
+
+        for (const i of idxs) {
+          const d = state.dates[i];
+          const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+          const mj = keyToIdx.get(key);
+          const v = arr[i];
+          if (Number.isFinite(v)) Z[ai][mj] += v;
+        }
+      }
+
       return { x: monthKeys, y: orderedAssets, z: Z };
     }
+
     function plotHeatmap() {
       if (!window.Plotly) return;
-      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartHeatmap', [], baseLayout('')); return; }
-      const idxs = currentWindowIdxs();
+
+      const v = state.focusVector;
+      if (!v || !state.perVector[v]) {
+        Plotly.react("chartHeatmap", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const idxs = getCurrentWindowIdxs();
+      if (!idxs.length) {
+        Plotly.react("chartHeatmap", [], emptyLayout("No hay fechas visibles para la ventana seleccionada"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
       const { x, y, z } = groupContribByMonthAndAsset(v, idxs);
-      const trace = { type:'heatmap', x, y, z, colorscale: [[0,'#1f2937'],[0.5,'#60a5fa'],[1,'#16a34a']],
-        colorbar:{title:'Contribución'}, hovertemplate:'Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.6f}<extra></extra>' };
-      const layout = baseLayout(''); layout.xaxis.type='category'; layout.yaxis.type='category'; layout.yaxis.autorange='reversed';
-      Plotly.react('chartHeatmap', [trace], layout, {displayModeBar:false, responsive:true});
+      const zBps = z.map(row => row.map(val => toBps(val)));
+
+      const trace = {
+        type: "heatmap",
+        x,
+        y,
+        z: zBps,
+        zmid: 0,
+        colorscale: [
+          [0.0, "#dc2626"],
+          [0.5, "#f3f4f6"],
+          [1.0, "#16a34a"]
+        ],
+        colorbar: { title: "bps" },
+        hovertemplate: "Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.0f} bps<extra></extra>"
+      };
+
+      const layout = baseLayout("");
+      layout.xaxis.type = "category";
+      layout.yaxis.type = "category";
+      layout.yaxis.autorange = "reversed";
+
+      Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
-    function plotBars() {
+
+    function plotContributionBars() {
       if (!window.Plotly) return;
-      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartBars', [], baseLayout('')); return; }
-      const idxs = currentWindowIdxs();
+
+      const v = state.focusVector;
+      if (!v || !state.perVector[v]) {
+        Plotly.react("chartBars", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const idxs = getCurrentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-      const orderedAssets = Object.keys(agg).sort((a,b)=> agg[b]-agg[a]);
-      const x = orderedAssets; const y = orderedAssets.map(a => agg[a]);
-      const colors = y.map(val => val>=0 ? '#16a34a' : '#ef4444');
-      const trace = { type:'bar', x, y, marker:{color: colors}, hovertemplate:'%{x}<br>Contribución: %{y:.6f}<extra></extra>' };
-      const layout = baseLayout(''); layout.xaxis.title='Asset class'; layout.yaxis.title='Contribución acumulada';
-      Plotly.react('chartBars', [trace], layout, {displayModeBar:false, responsive:true});
+      const orderedAssets = Object.keys(agg).filter(a => Number.isFinite(agg[a])).sort((a, b) => agg[b] - agg[a]);
+
+      if (!orderedAssets.length || !idxs.length) {
+        Plotly.react("chartBars", [], emptyLayout("No hay datos para mostrar"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const x = orderedAssets;
+      const y = orderedAssets.map(a => toBps(agg[a]));
+      const colors = y.map(val => val >= 0 ? "#16a34a" : "#ef4444");
+
+      const trace = {
+        type: "bar",
+        x,
+        y,
+        marker: { color: colors },
+        hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
+      };
+
+      const layout = baseLayout("");
+      layout.xaxis.title = "Asset class";
+      layout.yaxis.title = "Contribución acumulada (bps)";
+      layout.yaxis.ticksuffix = " bps";
+
+      Plotly.react("chartBars", [trace], layout, { displayModeBar: false, responsive: true });
     }
+
     function plotHist() {
       if (!window.Plotly) return;
-      const v = state.focusVector; if (!v || !state.perVector[v]) { Plotly.react('chartHist', [], baseLayout('')); return; }
-      const idxs = currentWindowIdxs();
+
+      const v = state.focusVector;
+      if (!v || !state.perVector[v]) {
+        Plotly.react("chartHist", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const idxs = getCurrentWindowIdxs();
       const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
-      const arr = Array.from(aw).filter(x => isFinite(x));
-      const trace = { type:'histogram', x: arr, nbinsx: Math.min(50, Math.max(10, Math.floor(Math.sqrt(arr.length)))), marker:{ color:'#60a5fa' },
-        hovertemplate:'Alpha: %{x:.6f}<br>Frecuencia: %{y}<extra></extra>' };
-      const layout = baseLayout(''); layout.xaxis.title='Alpha diario'; layout.yaxis.title='Frecuencia';
-      Plotly.react('chartHist', [trace], layout, {displayModeBar:false, responsive:true});
+      const arr = Array.from(aw).filter(x => Number.isFinite(x)).map(toBps);
+
+      if (!arr.length) {
+        Plotly.react("chartHist", [], emptyLayout("No hay datos para mostrar"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const trace = {
+        type: "histogram",
+        x: arr,
+        nbinsx: Math.min(50, Math.max(10, Math.floor(Math.sqrt(arr.length)))),
+        marker: { color: "#60a5fa" },
+        hovertemplate: "Alpha: %{x:.0f} bps<br>Frecuencia: %{y}<extra></extra>"
+      };
+
+      const layout = baseLayout("");
+      layout.xaxis.title = "Alpha diario (bps)";
+      layout.xaxis.ticksuffix = " bps";
+      layout.yaxis.title = "Frecuencia";
+
+      Plotly.react("chartHist", [trace], layout, { displayModeBar: false, responsive: true });
     }
+
     function updateMetrics() {
       const v = state.focusVector;
       if (!v || !state.perVector[v]) {
-        document.getElementById('mCumulative').textContent = "—";
-        document.getElementById('mVol').textContent = "—";
-        document.getElementById('mIR').textContent = "—";
-        document.getElementById('mSortino').textContent = "—";
-        document.getElementById('mHit').textContent = "—";
-        document.getElementById('mMDD').textContent = "—";
-        document.getElementById('dateSummary').textContent = "";
+        document.getElementById("mCumulative").textContent = "—";
+        document.getElementById("mVol").textContent = "—";
+        document.getElementById("mIR").textContent = "—";
+        document.getElementById("mSortino").textContent = "—";
+        document.getElementById("mHit").textContent = "—";
+        document.getElementById("mMDD").textContent = "—";
+        document.getElementById("dateSummary").textContent = "";
         return;
       }
-      const idxs = currentWindowIdxs();
+
+      const idxs = getCurrentWindowIdxs();
       const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
-      const m = metricsForSeries(Array.from(aw).filter(x=>isFinite(x)));
-      document.getElementById('mCumulative').textContent = fmtNum(m.total, 6);
-      document.getElementById('mVol').textContent = fmtPct(m.annVol, 2);
-      document.getElementById('mIR').textContent = isFinite(m.IR) ? m.IR.toFixed(2) : "—";
-      document.getElementById('mSortino').textContent = isFinite(m.Sortino) ? m.Sortino.toFixed(2) : "—";
-      document.getElementById('mHit').textContent = fmtPct(m.hit, 1);
-      document.getElementById('mMDD').textContent = fmtNum(m.MDD, 6);
+      const m = metricsForSeries(Array.from(aw).filter(x => Number.isFinite(x)));
+
+      document.getElementById("mCumulative").textContent = fmtBps(toBps(m.total), 0);
+      document.getElementById("mVol").textContent = fmtBps(toBps(m.annVol), 1);
+      document.getElementById("mIR").textContent = Number.isFinite(m.IR) ? m.IR.toFixed(2) : "—";
+      document.getElementById("mSortino").textContent = Number.isFinite(m.Sortino) ? m.Sortino.toFixed(2) : "—";
+      document.getElementById("mHit").textContent = fmtPct(m.hit, 1);
+      document.getElementById("mMDD").textContent = fmtBps(toBps(m.MDD), 0);
+
       const df = state.dateFrom ? toISODate(state.dateFrom) : toISODate(state.dates[0]);
-      const dt = state.dateTo ? toISODate(state.dateTo) : toISODate(state.dates[state.dates.length-1]);
-      document.getElementById('dateSummary').textContent = `Ventana: ${df} → ${dt} (${idxs.length} días)`;
+      const dt = state.dateTo ? toISODate(state.dateTo) : toISODate(state.dates[state.dates.length - 1]);
+      document.getElementById("dateSummary").textContent = `Ventana: ${df} → ${dt} (${idxs.length} días)`;
     }
+
     function renderAll() {
       if (!window.Plotly) {
         setStatus("Plotly no cargado");
-        appendDiag("Plotly no está disponible. Revisa <script src=\"./plotly.min.js\">.");
+        appendDiag("Plotly no está disponible. Revisa <script src=\"./plotly.min.js\"></script> y la ubicación del archivo.");
         return;
       }
+
+      ensureVisibilityDefaults();
+      renderWaterfallChips();
       updateMetrics();
       plotCumulative();
+      renderIndexedReturnsChart();
+      renderReturnBarsChart();
       plotDrawdown();
       plotWaterfall();
       plotDecomposition();
       plotHeatmap();
-      plotBars();
+      plotContributionBars();
       plotHist();
     }
 
     // =============================
     // UI / EVENTOS
     // =============================
+    function bindUIDelegates() {
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const chart = btn.dataset.chart;
+        const group = btn.dataset.group;
+        const asset = btn.dataset.asset;
+
+        if (action === "group") {
+          setChartGroupVisibility(chart, group);
+        } else if (action === "restore") {
+          restoreChartVisibility(chart);
+        } else if (action === "toggle-asset") {
+          toggleChartAsset(chart, asset);
+        }
+      });
+    }
+
     function initUI() {
-      const vMulti = document.getElementById('vectorMulti');
-      const vFocus = document.getElementById('vectorFocus');
+      const vMulti = document.getElementById("vectorMulti");
+      const vFocus = document.getElementById("vectorFocus");
 
       state.vectorNames.forEach(v => {
-        const opt1 = document.createElement('option'); opt1.value = v; opt1.textContent = v; vMulti.appendChild(opt1);
-        const opt2 = document.createElement('option'); opt2.value = v; opt2.textContent = v; vFocus.appendChild(opt2);
+        const opt1 = document.createElement("option");
+        opt1.value = v;
+        opt1.textContent = v;
+        vMulti.appendChild(opt1);
+
+        const opt2 = document.createElement("option");
+        opt2.value = v;
+        opt2.textContent = v;
+        vFocus.appendChild(opt2);
       });
 
-      const defaultSel = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
-      state.selectedVectors = defaultSel;
+      state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       state.focusVector = state.vectorNames[0] || null;
 
       for (const opt of vMulti.options) opt.selected = state.selectedVectors.includes(opt.value);
       vFocus.value = state.focusVector || "";
 
-      const dFrom = document.getElementById('dateFrom');
-      const dTo = document.getElementById('dateTo');
+      const dFrom = document.getElementById("dateFrom");
+      const dTo = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
-      const maxISO = state.isoDates[state.isoDates.length-1];
-      dFrom.min = minISO; dFrom.max = maxISO; dTo.min = minISO; dTo.max = maxISO; dFrom.value = ""; dTo.value = "";
+      const maxISO = state.isoDates[state.isoDates.length - 1];
+      dFrom.min = minISO;
+      dFrom.max = maxISO;
+      dTo.min = minISO;
+      dTo.max = maxISO;
+      dFrom.value = "";
+      dTo.value = "";
 
-      document.getElementById('dateCount').textContent = state.isoDates.length;
-      document.getElementById('assetCount').textContent = Object.keys(state.returnsByAsset).length;
-      document.getElementById('vectorCount').textContent = state.vectorNames.length;
+      document.getElementById("dateCount").textContent = state.isoDates.length;
+      document.getElementById("assetCount").textContent = Object.keys(state.returnsByAsset).length;
+      document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
-      vMulti.addEventListener('change', () => {
-        const sel = Array.from(vMulti.selectedOptions).map(o=>o.value);
-        state.selectedVectors = sel; renderAll();
-      });
-      vFocus.addEventListener('change', () => { state.focusVector = vFocus.value || null; renderAll(); });
-      document.getElementById('selectAll').addEventListener('click', () => {
-        state.selectedVectors = [...state.vectorNames]; for (const opt of vMulti.options) opt.selected = true; renderAll();
-      });
-      document.getElementById('selectNone').addEventListener('click', () => {
-        state.selectedVectors = []; for (const opt of vMulti.options) opt.selected = false; renderAll();
-      });
+      ensureVisibilityDefaults();
+      renderWaterfallChips();
 
-      document.getElementById('quickRanges').addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-range]'); if (!btn) return;
-        const key = btn.getAttribute('data-range'); const idxs = idxWindowByKey(key);
-        const df = state.dates[idxs[0]], dt = state.dates[idxs[idxs.length-1]];
-        state.dateFrom = df; state.dateTo = dt; dFrom.value = toISODate(df); dTo.value = toISODate(dt); renderAll();
-      });
-      document.getElementById('applyDates').addEventListener('click', () => {
-        const dFromStr = dFrom.value; const dToStr = dTo.value;
-        state.dateFrom = dFromStr ? new Date(dFromStr+"T00:00:00Z") : null;
-        state.dateTo = dToStr ? new Date(dToStr+"T00:00:00Z") : null;
-        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) { alert("Fecha desde no puede ser mayor que fecha hasta."); return; }
+      vMulti.addEventListener("change", () => {
+        const sel = Array.from(vMulti.selectedOptions).map(o => o.value);
+        state.selectedVectors = sel;
         renderAll();
       });
-      document.getElementById('resetDates').addEventListener('click', () => {
-        state.dateFrom = null; state.dateTo = null; dFrom.value = ""; dTo.value = ""; renderAll();
-      });
-      document.getElementById('themeToggle').addEventListener('click', () => {
-        state.theme = (state.theme === 'light' ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', state.theme);
-        document.getElementById('themeToggle').textContent = state.theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+
+      vFocus.addEventListener("change", () => {
+        state.focusVector = vFocus.value || null;
+        state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
         renderAll();
       });
+
+      document.getElementById("selectAll").addEventListener("click", () => {
+        state.selectedVectors = [...state.vectorNames];
+        for (const opt of vMulti.options) opt.selected = true;
+        renderAll();
+      });
+
+      document.getElementById("selectNone").addEventListener("click", () => {
+        state.selectedVectors = [];
+        for (const opt of vMulti.options) opt.selected = false;
+        renderAll();
+      });
+
+      document.getElementById("quickRanges").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-range]");
+        if (!btn) return;
+
+        const key = btn.getAttribute("data-range");
+        const idxs = idxWindowByKey(key);
+        if (!idxs.length) return;
+
+        const df = state.dates[idxs[0]];
+        const dt = state.dates[idxs[idxs.length - 1]];
+        state.dateFrom = df;
+        state.dateTo = dt;
+        dFrom.value = toISODate(df);
+        dTo.value = toISODate(dt);
+        renderAll();
+      });
+
+      document.getElementById("applyDates").addEventListener("click", () => {
+        const dFromStr = dFrom.value;
+        const dToStr = dTo.value;
+        state.dateFrom = dFromStr ? new Date(dFromStr + "T00:00:00Z") : null;
+        state.dateTo = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
+
+        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) {
+          alert("Fecha desde no puede ser mayor que fecha hasta.");
+          return;
+        }
+        renderAll();
+      });
+
+      document.getElementById("resetDates").addEventListener("click", () => {
+        state.dateFrom = null;
+        state.dateTo = null;
+        dFrom.value = "";
+        dTo.value = "";
+        renderAll();
+      });
+
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        state.theme = (state.theme === "light" ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", state.theme);
+        document.getElementById("themeToggle").textContent = state.theme === "dark" ? "Modo claro" : "Modo oscuro";
+        renderAll();
+      });
+
+      window.addEventListener("resize", () => renderAll());
     }
+
+    window.addEventListener("error", (e) => {
+      appendDiag({ js_error: e.message || String(e) });
+    });
+
+    window.addEventListener("unhandledrejection", (e) => {
+      appendDiag({ promise_rejection: String(e.reason) });
+    });
 
     // =============================
     // INICIALIZACIÓN
     // =============================
     (async function main() {
       try {
+        bindUIDelegates();
         setStatus("Cargando datos…");
         await loadCSVFiles();
         setStatus("Procesando…");
@@ -987,8 +1839,12 @@
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
         setStatus("Error cargando datos");
-        appendDiag({error: msg});
-        alert("Ocurrió un error al cargar o procesar los archivos CSV:\n\n" + msg + "\n\nRevisa la consola (F12) → Console y Network.");
+        appendDiag({ error: msg });
+        alert(
+          "Ocurrió un error al cargar o procesar los archivos CSV:\n\n" +
+          msg +
+          "\n\nRevisa la consola (F12) → Console y Network."
+        );
       }
     })();
   </script>
