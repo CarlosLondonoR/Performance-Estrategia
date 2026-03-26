@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  <!-- Plotly local (NO CDN). Debe existir plotly.min.js en la raíz del repo -->
   <script src="./plotly.min.js"></script>
 
   <style>
@@ -16,9 +15,6 @@
       --muted: #475569;
       --accent: #2563eb;
       --grid: #e2e8f0;
-      --ok: #16a34a;
-      --warn: #f59e0b;
-      --bad: #dc2626;
       --chip: #eef2ff;
       --chip-active: #dbeafe;
     }
@@ -113,7 +109,6 @@
       background: var(--accent);
       color: white;
       border: none;
-      cursor: pointer;
     }
 
     .btn.ghost {
@@ -223,10 +218,6 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 4px;
-    }
-
-    .chart-toolbar .btn-group {
-      gap: 6px;
     }
 
     .chart-note {
@@ -433,7 +424,7 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Cuando ocultas una serie con la leyenda, deja de aparecer en la leyenda. Para restaurarlas todas, usa el botón inferior derecho.</div>
+          <div class="chart-note">Al ocultar una serie con la leyenda, esta deja de renderizarse y desaparece de la leyenda. Usa “Restaurar todos” para volver a mostrarlas.</div>
         </div>
         <div id="chartIndexed" class="plot"></div>
         <button class="restore-btn" type="button" data-action="restore" data-chart="indexed">Restaurar todos</button>
@@ -447,7 +438,7 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Click en la leyenda para ocultar/mostrar series. El orden se recalcula con la ventana seleccionada.</div>
+          <div class="chart-note">Click en la leyenda para ocultar/mostrar series. El orden se recalcula según la ventana seleccionada.</div>
         </div>
         <div id="chartReturnBars" class="plot"></div>
         <button class="restore-btn" type="button" data-action="restore" data-chart="returnBars">Restaurar todos</button>
@@ -467,7 +458,7 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Aquí puedes filtrar por grupos o activos individuales. La selección se actualiza sobre el vector foco.</div>
+          <div class="chart-note">Puedes filtrar por grupos o por activos individuales desde los chips inferiores.</div>
         </div>
         <div id="waterfallChips" class="asset-chip-list"></div>
         <div id="chartWaterfall" class="plot"></div>
@@ -496,9 +487,6 @@
   </div>
 
   <script>
-    // =============================
-    // UTILIDADES GENERALES
-    // =============================
     const ANN_FACTOR = Math.sqrt(252);
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot", "usdjpy_spot", "Duracion"]);
 
@@ -510,19 +498,19 @@
       "ax_index":   { asset: "Asia ex-Japón", group: "RV" },
       "la_index":   { asset: "Latam",         group: "RV" },
 
-      "ts_index":   { asset: "T - SD",      group: "RF" },
-      "tm_index":   { asset: "T - MD",      group: "RF" },
-      "tl_index":   { asset: "T - LD",      group: "RF" },
-      "tipss_index": { asset: "TIPS - SD",   group: "RF" },
-      "tipsl_index": { asset: "TIPS - LD",   group: "RF" },
-      "ig_index":   { asset: "IG",           group: "RF" },
-      "igsd_index": { asset: "IG - SD",      group: "RF" },
-      "igld_index": { asset: "IG - LD",      group: "RF" },
-      "hysd_index": { asset: "HY - SD",      group: "RF" },
-      "hyld_index": { asset: "HY - LD",      group: "RF" },
-      "lc_index":   { asset: "EMD LC",       group: "RF" },
-      "hc_index":   { asset: "EMD HC",       group: "RF" },
-      "cash_index": { asset: "Caja",         group: "RF" },
+      "ts_index":   { asset: "T - SD",        group: "RF" },
+      "tm_index":   { asset: "T - MD",        group: "RF" },
+      "tl_index":   { asset: "T - LD",        group: "RF" },
+      "tipss_index": { asset: "TIPS - SD",     group: "RF" },
+      "tipsl_index": { asset: "TIPS - LD",     group: "RF" },
+      "ig_index":   { asset: "IG",            group: "RF" },
+      "igsd_index": { asset: "IG - SD",       group: "RF" },
+      "igld_index": { asset: "IG - LD",       group: "RF" },
+      "hysd_index": { asset: "HY - SD",       group: "RF" },
+      "hyld_index": { asset: "HY - LD",       group: "RF" },
+      "lc_index":   { asset: "EMD LC",        group: "RF" },
+      "hc_index":   { asset: "EMD HC",        group: "RF" },
+      "cash_index": { asset: "Caja",          group: "RF" },
 
       "eurusd": { asset: "EURUSD", group: "FX" },
       "usdjpy": { asset: "USDYEN", group: "FX" }
@@ -542,14 +530,12 @@
 
       let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(str);
       if (m) {
-        const yyyy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
-        return new Date(Date.UTC(yyyy, mm - 1, dd));
+        return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
       }
 
       m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
       if (m) {
-        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
-        return new Date(Date.UTC(yyyy, mm - 1, dd));
+        return new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
       }
 
       return new Date(NaN);
@@ -627,13 +613,13 @@
             cur += ch;
           }
         }
+
         out.push(cur);
         return out.map(s => s.trim());
       };
 
       const headers = parseLine(lines[0]).filter((h, idx, arr) => !(idx === arr.length - 1 && h === ""));
       const rows = [];
-
       for (let i = 1; i < lines.length; i++) {
         const parts = parseLine(lines[i]);
         const obj = {};
@@ -655,26 +641,37 @@
       console.log("[Diag]", msgObj);
     }
 
-    function emptyLayout(message = "Sin datos para mostrar") {
-      const layout = baseLayout("");
-      layout.showlegend = false;
-      layout.xaxis.visible = false;
-      layout.yaxis.visible = false;
-      layout.annotations = [{
-        text: message,
-        x: 0.5,
-        y: 0.5,
-        xref: "paper",
-        yref: "paper",
-        showarrow: false,
-        font: { color: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(), size: 13 }
-      }];
-      return layout;
+    function getThemeColors() {
+      return {
+        panel: getComputedStyle(document.documentElement).getPropertyValue("--panel").trim(),
+        text: getComputedStyle(document.documentElement).getPropertyValue("--text").trim(),
+        grid: getComputedStyle(document.documentElement).getPropertyValue("--grid").trim(),
+        muted: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim()
+      };
     }
 
-    // =============================
-    // ESTADO
-    // =============================
+    function emptyLayout(message) {
+      const c = getThemeColors();
+      return {
+        paper_bgcolor: c.panel,
+        plot_bgcolor: c.panel,
+        font: { color: c.text },
+        margin: { l: 55, r: 20, t: 10, b: 45 },
+        xaxis: { visible: false },
+        yaxis: { visible: false },
+        showlegend: false,
+        annotations: [{
+          text: message,
+          x: 0.5,
+          y: 0.5,
+          xref: "paper",
+          yref: "paper",
+          showarrow: false,
+          font: { color: c.muted, size: 13 }
+        }]
+      };
+    }
+
     const state = {
       theme: "light",
       dates: [],
@@ -710,14 +707,8 @@
       const allReturnAssets = getOrderedReturnAssets();
       if (!state.visibility.indexed || !state.visibility.indexed.size) state.visibility.indexed = new Set(allReturnAssets);
       if (!state.visibility.returnBars || !state.visibility.returnBars.size) state.visibility.returnBars = new Set(allReturnAssets);
-
       const wfAssets = getFocusVectorAssetsOrdered();
       if (!state.visibility.waterfall || !state.visibility.waterfall.size) state.visibility.waterfall = new Set(wfAssets);
-    }
-
-    function setVisibleAssets(chartKey, assets) {
-      state.visibility[chartKey] = new Set(assets);
-      renderAll();
     }
 
     function restoreChartVisibility(chartKey) {
@@ -759,7 +750,6 @@
     function renderWaterfallChips() {
       const container = document.getElementById("waterfallChips");
       if (!container) return;
-
       const all = getFocusVectorAssetsOrdered();
       const visible = state.visibility.waterfall || new Set(all);
 
@@ -774,14 +764,10 @@
       }).join("");
     }
 
-    // =============================
-    // CARGA Y PARSING
-    // =============================
     function fetchWithTimeout(url, ms = 30000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
-      return fetch(url, { signal: ctrl.signal, cache: "no-store" })
-        .finally(() => clearTimeout(t));
+      return fetch(url, { signal: ctrl.signal, cache: "no-store" }).finally(() => clearTimeout(t));
     }
 
     async function loadCSVFiles() {
@@ -803,9 +789,6 @@
       if (!track.headers.length) throw new Error("trackrecord.csv vacío o sin headers");
       if (!gaps.headers.length) throw new Error("gaps.csv vacío o sin headers");
 
-      appendDiag({ track_headers: track.headers });
-      appendDiag({ gaps_headers_count: gaps.headers.length });
-
       const trDateCol = track.headers[0];
       const gpDateCol = gaps.headers[0];
 
@@ -822,21 +805,15 @@
       const trISO = trDates.map(toISODate);
       const gpISO = gpDates.map(toISODate);
 
-      appendDiag({ track_rows: track.rows.length, gaps_rows: gaps.rows.length });
-      appendDiag({ track_date_min: trISO[0], track_date_max: trISO[trISO.length - 1] });
-      appendDiag({ gaps_date_min: gpISO[0], gaps_date_max: gpISO[gpISO.length - 1] });
-
       const setGP = new Set(gpISO);
       const common = [];
       for (let i = 0; i < trISO.length; i++) {
         if (setGP.has(trISO[i])) common.push(trISO[i]);
       }
-
       if (!common.length) throw new Error("No hay fechas comunes entre trackrecord y gaps");
 
       const commonISO = Array.from(new Set(common));
       const commonDateObjs = commonISO.map(s => new Date(s + "T00:00:00Z"));
-
       const idxTR = new Map(trISO.map((d, i) => [d, i]));
       const idxGP = new Map(gpISO.map((d, i) => [d, i]));
 
@@ -860,24 +837,19 @@
           const p0 = prices[k - 1], p1 = prices[k];
           rets[k] = (Number.isFinite(p0) && Number.isFinite(p1) && p0 !== 0) ? (p1 / p0 - 1) : 0;
         }
-
         returnsByAsset[asset] = rets;
       });
 
-      const vectorCols = gaps.headers.slice(1);
       const vectors = {};
+      const vectorCols = gaps.headers.slice(1);
 
       for (const col of vectorCols) {
         if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
-        if (lastUnd <= 0 || lastUnd === col.length - 1) {
-          console.warn("Columna gaps sin separador válido '_':", col);
-          continue;
-        }
+        if (lastUnd <= 0 || lastUnd === col.length - 1) continue;
 
         const assetName = col.slice(0, lastUnd);
         const vectorName = col.slice(lastUnd + 1);
-
         if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {} };
 
         const arr = new Float64Array(commonISO.length);
@@ -908,9 +880,6 @@
       });
     }
 
-    // =============================
-    // PRE-CÁLCULOS
-    // =============================
     function precomputeAll() {
       const N = state.isoDates.length;
       const perVector = {};
@@ -928,7 +897,6 @@
         const compFX = new Float64Array(N);
         const contribByAssetDaily = {};
         const assetsForVector = Object.keys(gapsByAsset);
-
         for (const a of assetsForVector) contribByAssetDaily[a] = new Float64Array(N);
 
         for (let t = 0; t < N; t++) {
@@ -998,9 +966,6 @@
       appendDiag({ precompute_done_for_vectors: state.vectorNames.length });
     }
 
-    // =============================
-    // MÉTRICAS
-    // =============================
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
       for (let i = 0; i < dates.length; i++) {
@@ -1160,35 +1125,19 @@
       return state.selectedVectors.length ? state.selectedVectors : [];
     }
 
-    // =============================
-    // PLOTLY BASE
-    // =============================
     function baseLayout(title = "") {
-      const panel = getComputedStyle(document.documentElement).getPropertyValue("--panel").trim();
-      const text = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
-      const grid = getComputedStyle(document.documentElement).getPropertyValue("--grid").trim();
-
+      const c = getThemeColors();
       return {
-        title: { text, font: { size: 12 }, x: 0, xanchor: "left" },
-        paper_bgcolor: panel,
-        plot_bgcolor: panel,
-        font: { color: text },
+        title: { text: title, font: { size: 12 }, x: 0, xanchor: "left" },
+        paper_bgcolor: c.panel,
+        plot_bgcolor: c.panel,
+        font: { color: c.text },
         margin: { l: 55, r: 20, t: 30, b: 45 },
         hovermode: "x unified",
-        xaxis: {
-          showgrid: true,
-          gridcolor: grid,
-          zeroline: false
-        },
-        yaxis: {
-          showgrid: true,
-          gridcolor: grid,
-          zeroline: true,
-          zerolinecolor: grid
-        },
+        xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
+        yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid },
         showlegend: true,
-        legend: { orientation: "h", x: 0, y: 1.1 },
-        title
+        legend: { orientation: "h", x: 0, y: 1.1 }
       };
     }
 
@@ -1202,8 +1151,7 @@
 
     function bindLegendToggle(chartId, chartKey) {
       const gd = document.getElementById(chartId);
-      if (!gd || gd.__legendToggleBound) return;
-      if (typeof gd.on !== "function") return;
+      if (!gd || gd.__legendToggleBound || typeof gd.on !== "function") return;
 
       gd.on("plotly_legendclick", (ev) => {
         const trace = ev?.data?.[ev.curveNumber];
@@ -1216,14 +1164,8 @@
       gd.__legendToggleBound = true;
     }
 
-    // =============================
-    // GRÁFICAS
-    // =============================
     function plotCumulative() {
-      if (!window.Plotly) {
-        console.warn("Plotly no está cargado");
-        return;
-      }
+      if (!window.Plotly) return;
 
       const idxs = getCurrentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
@@ -1348,7 +1290,6 @@
 
       const layout = baseLayout("");
       layout.yaxis.title = "Índice (Base 100)";
-      layout.yaxis.ticksuffix = "";
       layout.xaxis.title = "Fecha";
 
       Plotly.react("chartIndexed", traces, layout, { displayModeBar: false, responsive: true });
@@ -1368,10 +1309,8 @@
         return;
       }
 
-      const data = visibleAssets.map(asset => ({
-        asset,
-        ret: computeAccumulatedReturn(asset, idxs)
-      })).sort((a, b) => b.ret - a.ret);
+      const data = visibleAssets.map(asset => ({ asset, ret: computeAccumulatedReturn(asset, idxs) }))
+        .sort((a, b) => b.ret - a.ret);
 
       const traces = data.map((d, i) => ({
         type: "bar",
@@ -1422,7 +1361,6 @@
 
       const idxs = getCurrentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-
       const allFocusAssets = getFocusVectorAssetsOrdered();
       const visible = state.visibility.waterfall || new Set(allFocusAssets);
       const orderAssets = allFocusAssets.filter(a => visible.has(a) && Object.prototype.hasOwnProperty.call(agg, a));
@@ -1447,9 +1385,9 @@
         x,
         y,
         measure: measures,
-        text: y.map(v => fmtNum(v, 0)),
+        text: y.map(vv => fmtNum(vv, 0)),
         textposition: "outside",
-        connector: { line: { color: getComputedStyle(document.documentElement).getPropertyValue("--grid").trim() } },
+        connector: { line: { color: getThemeColors().grid } },
         decreasing: { marker: { color: "#ef4444" } },
         increasing: { marker: { color: "#16a34a" } },
         totals: { marker: { color: "#2563eb" } },
@@ -1486,38 +1424,10 @@
       });
 
       const x = components.map(c => c.v);
-      const trAlloc = {
-        type: "bar",
-        name: "Allocation",
-        x,
-        y: components.map(c => c.sA),
-        marker: { color: "#60a5fa" },
-        hovertemplate: "Allocation: %{y:.0f} bps<extra></extra>"
-      };
-      const trSelRV = {
-        type: "bar",
-        name: "Selection RV",
-        x,
-        y: components.map(c => c.sRV),
-        marker: { color: "#34d399" },
-        hovertemplate: "Selection RV: %{y:.0f} bps<extra></extra>"
-      };
-      const trSelRF = {
-        type: "bar",
-        name: "Selection RF",
-        x,
-        y: components.map(c => c.sRF),
-        marker: { color: "#f59e0b" },
-        hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>"
-      };
-      const trFX = {
-        type: "bar",
-        name: "FX",
-        x,
-        y: components.map(c => c.sFX),
-        marker: { color: "#a78bfa" },
-        hovertemplate: "FX: %{y:.0f} bps<extra></extra>"
-      };
+      const trAlloc = { type: "bar", name: "Allocation", x, y: components.map(c => c.sA), marker: { color: "#60a5fa" }, hovertemplate: "Allocation: %{y:.0f} bps<extra></extra>" };
+      const trSelRV = { type: "bar", name: "Selection RV", x, y: components.map(c => c.sRV), marker: { color: "#34d399" }, hovertemplate: "Selection RV: %{y:.0f} bps<extra></extra>" };
+      const trSelRF = { type: "bar", name: "Selection RF", x, y: components.map(c => c.sRF), marker: { color: "#f59e0b" }, hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>" };
+      const trFX = { type: "bar", name: "FX", x, y: components.map(c => c.sFX), marker: { color: "#a78bfa" }, hovertemplate: "FX: %{y:.0f} bps<extra></extra>" };
 
       const layout = baseLayout("");
       layout.barmode = "stack";
@@ -1614,10 +1524,7 @@
 
       const idxs = getCurrentWindowIdxs();
       const agg = aggregateContribByAsset(v, idxs);
-
-      const orderedAssets = Object.keys(agg)
-        .filter(a => Number.isFinite(agg[a]))
-        .sort((a, b) => agg[b] - agg[a]);
+      const orderedAssets = Object.keys(agg).filter(a => Number.isFinite(agg[a])).sort((a, b) => agg[b] - agg[a]);
 
       if (!orderedAssets.length || !idxs.length) {
         Plotly.react("chartBars", [], emptyLayout("No hay datos para mostrar"), { displayModeBar: false, responsive: true });
@@ -1654,8 +1561,7 @@
       }
 
       const idxs = getCurrentWindowIdxs();
-      const alpha = state.perVector[v].alpha;
-      const aw = vectorSubarrayByIdx(alpha, idxs);
+      const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
       const arr = Array.from(aw).filter(x => Number.isFinite(x)).map(toBps);
 
       if (!arr.length) {
@@ -1715,6 +1621,7 @@
         return;
       }
 
+      ensureVisibilityDefaults();
       renderWaterfallChips();
       updateMetrics();
       plotCumulative();
@@ -1728,9 +1635,6 @@
       plotHist();
     }
 
-    // =============================
-    // UI / EVENTOS
-    // =============================
     function bindUIDelegates() {
       document.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-action]");
@@ -1860,9 +1764,7 @@
         renderAll();
       });
 
-      window.addEventListener("resize", () => {
-        renderAll();
-      });
+      window.addEventListener("resize", () => renderAll());
     }
 
     window.addEventListener("error", (e) => {
@@ -1873,9 +1775,6 @@
       appendDiag({ promise_rejection: String(e.reason) });
     });
 
-    // =============================
-    // INICIALIZACIÓN
-    // =============================
     (async function main() {
       try {
         bindUIDelegates();
