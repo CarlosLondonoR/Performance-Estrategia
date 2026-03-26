@@ -200,7 +200,7 @@
     .card {
       position: relative;
       background: var(--panel);
-      border: 1px solid var(--edge);              /* borde más marcado */
+      border: 1px solid var(--edge);              /* más marcado */
       border-radius: 12px;
       padding: 10px;
       display: flex;
@@ -776,7 +776,7 @@
         const all = getFocusVectorAssetsOrdered();
         if (group === "ALL") state.visibility.waterfall = new Set(all);
         else if (group === "ACTIVE") state.visibility.waterfall = new Set(filterActive(all));
-        else state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
+        else state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a));
       } else {
         const all = getOrderedReturnAssets();
         if (group === "ALL") state.visibility[chartKey] = new Set(all);
@@ -1276,6 +1276,7 @@
       bindLegendToggle("chartIndexed", "indexed");
     }
 
+    // === Retorno acumulado por asset class (altura dinámica con tope y etiquetas) ===
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
@@ -1293,17 +1294,22 @@
         return;
       }
 
-      const data = visibleAssets.map(asset => ({ asset, ret: computeAccumulatedReturn(asset, idxs) }))
+      const data = visibleAssets
+        .map(asset => ({ asset, ret: computeAccumulatedReturn(asset, idxs) }))
         .sort((a, b) => b.ret - a.ret);
 
-      // Un trace por barra para conservar toggles por leyenda
+      // Un trace por barra => conserva el toggle individual por leyenda
       const traces = data.map((d, i) => ({
         type: "bar",
         orientation: "h",
         name: d.asset,
         x: [d.ret],
         y: [d.asset],
-        marker: { color: palette(i) },
+        marker: { color: palette(i) },                 // Mantenemos colores existentes
+        text: [ (d.ret * 100).toFixed(1) + "%" ],      // etiqueta en puntos porcentuales (XX.X%)
+        textposition: "outside",
+        textfont: { size: 11 },
+        cliponaxis: false,                             // Permite que el texto se vea aunque quede fuera del área
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
@@ -1311,19 +1317,27 @@
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
+
+      // Rango con padding extra para evitar que se corten las etiquetas "outside"
       const maxAbs = Math.max(1e-9, ...data.map(d => Math.abs(d.ret) || 0));
-      layout.xaxis.range = [-maxAbs * 1.15, maxAbs * 1.15];
+      const pad = 1.25; // 25% de margen a ambos lados
+      layout.xaxis.range = [-maxAbs * pad, maxAbs * pad];
+
       layout.yaxis.title = "Asset class";
       layout.yaxis.categoryorder = "array";
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
       layout.margin.l = 220;
-      layout.bargap = 0.45; // barras más delgadas (espacio entre categorías ↑)
+      layout.margin.r = 100;  // espacio adicional para etiquetas fuera de barras
+      layout.bargap = 0.45;   // barras más delgadas (espacio entre categorías ↑)
 
-      // Altura dinámica: menos por barra + extra mayor para evitar cortes
-      const perBar = 18;  // antes 26
-      const extra = 200;  // antes 160
-      const desired = Math.max(320, Math.round(perBar * data.length + extra));
+      // Altura dinámica con límite para que el módulo no crezca indefinidamente
+      const perBar = 20;   // px por barra
+      const extra  = 220;  // base para títulos/leyenda/márgenes
+      const minH   = 340;  // mínimo razonable
+      const maxH   = 820;  // tope máximo razonable
+      const desired = Math.min(maxH, Math.max(minH, Math.round(perBar * data.length + extra)));
+
       if (plotDiv) plotDiv.style.minHeight = desired + "px";
       if (card) {
         const baseRow = 430; // coincide con grid-auto-rows
@@ -1624,7 +1638,7 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();  // ReturnBars ajustado
+      renderReturnBarsChart();  // ReturnBars con altura dinámica + etiquetas
       plotWaterfall();          // Waterfall ajustado
       plotDecomposition();
       plotDrawdown();
