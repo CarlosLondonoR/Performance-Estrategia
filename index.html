@@ -15,6 +15,7 @@
       --muted: #475569;
       --accent: #2563eb;
       --grid: #e2e8f0;
+      --edge: #cbd5e1; /* borde más marcado */
       --ok: #16a34a;
       --warn: #f59e0b;
       --bad: #dc2626;
@@ -22,7 +23,7 @@
       --chip-active: #dbeafe;
 
       /* alturas para sticky */
-      --hdr-h: 64px;        /* altura aproximada del header */
+      --hdr-h: 51px;        /* 20% menos que 64px anterior */
       --gap-h: 12px;        /* gap vertical entre filas del grid */
       --ctrl-top: calc(var(--hdr-h) + var(--gap-h));
     }
@@ -34,6 +35,7 @@
       --muted: #9ca3af;
       --accent: #60a5fa;
       --grid: #1f2937;
+      --edge: #0f172a; /* borde más marcado en dark */
       --chip: #1e293b;
       --chip-active: #1d4ed8;
     }
@@ -65,10 +67,12 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 10px 16px;
+      padding: 8px 16px; /* más compacto */
       background: var(--panel);
       border-radius: 12px;
-      box-shadow: 0 1px 0 var(--grid) inset, 0 4px 10px rgba(0,0,0,0.04);
+      border: 1px solid var(--edge);                /* borde más marcado */
+      box-shadow: 0 1px 0 var(--grid) inset,        /* línea interna */
+                  0 4px 12px rgba(0,0,0,0.06);      /* sombra externa suave */
       min-height: var(--hdr-h);
     }
 
@@ -78,15 +82,10 @@
       line-height: 1.2;
     }
 
-    header .subtitle {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
     /* Botón icon-only (tema) */
     .icon-btn {
-      height: 36px;
-      width: 36px;
+      height: 34px;
+      width: 34px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -104,8 +103,10 @@
     .controls, .metrics {
       background: var(--panel);
       border-radius: 12px;
-      padding: 10px 14px; /* más compacto */
-      box-shadow: 0 1px 0 var(--grid) inset;
+      padding: 6px 12px;  /* ~35% menos que antes */
+      border: 1px solid var(--edge);                /* borde más marcado */
+      box-shadow: 0 1px 0 var(--grid) inset,
+                  0 4px 12px rgba(0,0,0,0.06);      /* sombra externa */
     }
 
     /* ===== Controles (sticky y compactos) ===== */
@@ -113,13 +114,12 @@
       position: sticky;
       top: var(--ctrl-top);
       z-index: 90;
-      box-shadow: 0 1px 0 var(--grid) inset, 0 8px 14px rgba(0,0,0,0.04);
     }
 
     .controls-grid {
       display: grid;
       grid-template-columns: 1.2fr 1fr 1fr 1fr;
-      gap: 10px;
+      gap: 8px;               /* más compacto */
       align-items: start;
     }
 
@@ -135,7 +135,7 @@
     }
 
     select, input, button {
-      padding: 6px 9px;  /* compacto */
+      padding: 5px 8px;  /* más compacto */
       border-radius: 10px;
       border: 1px solid var(--grid);
       background: var(--panel);
@@ -156,7 +156,7 @@
       border: 1px solid var(--grid);
     }
     .btn.small {
-      padding: 5px 8px;
+      padding: 4px 7px;
       font-size: 12px;
       border-radius: 9px;
     }
@@ -183,8 +183,9 @@
     .metric {
       padding: 10px 12px;
       background: var(--panel);
-      border: 1px solid var(--grid);
+      border: 1px solid var(--edge);              /* más marcado */
       border-radius: 12px;
+      box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
     }
     .metric .kpi { font-weight: 700; font-size: 18px; }
     .metric .desc { color: var(--muted); font-size: 12px; }
@@ -199,18 +200,19 @@
     .card {
       position: relative;
       background: var(--panel);
-      border: 1px solid var(--grid);
+      border: 1px solid var(--edge);              /* borde más marcado */
       border-radius: 12px;
       padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       overflow: hidden; /* por defecto */
+      box-shadow: 0 1px 0 var(--grid) inset, 0 6px 14px rgba(0,0,0,0.06); /* sombra un pelín más notoria */
     }
     .card.span-2 { grid-column: 1 / -1; }
 
-    /* Evitar cortes en Waterfall */
-    #cardWaterfall { overflow: visible; }
+    /* Evitar cortes en Waterfall y ReturnBars */
+    #cardWaterfall, #cardReturnBars { overflow: visible; }
 
     .card h3 {
       margin: 0;
@@ -225,7 +227,7 @@
 
     .plot {
       flex: 1;
-      min-height: 320px;
+      min-height: 300px; /* un poco más bajo por compacidad general */
     }
 
     .small { font-size: 12px; color: var(--muted); }
@@ -277,7 +279,7 @@
     .modal {
       background: var(--panel);
       color: var(--text);
-      border: 1px solid var(--grid);
+      border: 1px solid var(--edge);
       border-radius: 12px;
       width: min(720px, 92vw);
       max-height: 80vh;
@@ -295,6 +297,7 @@
       border-radius: 12px 12px 0 0;
       box-shadow: none;
       min-height: auto;
+      background: var(--panel);
     }
     .modal .body {
       padding: 10px 14px;
@@ -336,17 +339,14 @@
 <body>
   <div class="app">
     <header>
-      <div>
-        <div class="title">Alpha Dashboard — Vectores de Recomendación</div>
-        <div class="subtitle">Lectura de CSV locales · Alpha en bps · Descomposición · Gráficas dinámicas con Plotly local</div>
-      </div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación</div>
       <div class="row">
         <span id="loadStatus" class="chip">Cargando datos…</span>
         <details class="diagnostics">
           <summary>Diagnóstico</summary>
           <pre id="diagBox">—</pre>
         </details>
-        <!-- Botón de tema con íconos -->
+        <!-- Botón de tema con íconos (sin texto) -->
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
           <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -365,7 +365,7 @@
 
     <section class="controls">
       <div class="controls-grid">
-        <!-- NUEVO: botón que abre modal para selección múltiple -->
+        <!-- Botón que abre modal para selección múltiple -->
         <div class="control">
           <label>Vectores (múltiple)</label>
           <div class="row">
@@ -407,7 +407,7 @@
           <span class="small" id="dateSummary"></span>
         </div>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" style="margin-top:6px">
         <span class="small">Fechas comunes: <span id="dateCount">0</span></span>
         <span class="small">· Activos mapeados: <span id="assetCount">0</span></span>
         <span class="small">· Vectores detectados: <span id="vectorCount">0</span></span>
@@ -493,7 +493,7 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Oculta series individuales con la leyenda. Usa “Todos” para restaurar todas.</div>
+          <div class="chart-note">Usa “Todos” para restaurar todas.</div>
         </div>
         <div id="chartReturnBars" class="plot"></div>
       </div>
@@ -1296,9 +1296,13 @@
       const data = visibleAssets.map(asset => ({ asset, ret: computeAccumulatedReturn(asset, idxs) }))
         .sort((a, b) => b.ret - a.ret);
 
+      // Un trace por barra para conservar toggles por leyenda
       const traces = data.map((d, i) => ({
-        type: "bar", orientation: "h", name: d.asset,
-        x: [d.ret], y: [d.asset],
+        type: "bar",
+        orientation: "h",
+        name: d.asset,
+        x: [d.ret],
+        y: [d.asset],
         marker: { color: palette(i) },
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
@@ -1314,14 +1318,15 @@
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
       layout.margin.l = 220;
+      layout.bargap = 0.45; // barras más delgadas (espacio entre categorías ↑)
 
-      // Altura dinámica en función de # de barras
-      const perBar = 26;
-      const extra = 160;
+      // Altura dinámica: menos por barra + extra mayor para evitar cortes
+      const perBar = 18;  // antes 26
+      const extra = 200;  // antes 160
       const desired = Math.max(320, Math.round(perBar * data.length + extra));
       if (plotDiv) plotDiv.style.minHeight = desired + "px";
       if (card) {
-        const baseRow = 430;
+        const baseRow = 430; // coincide con grid-auto-rows
         const span = Math.max(1, Math.ceil(desired / baseRow));
         card.style.gridRow = `span ${span}`;
       }
@@ -1351,7 +1356,7 @@
 
       if (!v || !state.perVector[v]) {
         if (card) card.style.gridRow = "span 1";
-        if (plotDiv) plotDiv.style.minHeight = "360px";
+        if (plotDiv) plotDiv.style.minHeight = "340px";
         Plotly.react("chartWaterfall", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
         document.getElementById("wfVector").textContent = "";
         return;
@@ -1365,7 +1370,7 @@
 
       if (!orderAssets.length || !idxs.length) {
         if (card) card.style.gridRow = "span 1";
-        if (plotDiv) plotDiv.style.minHeight = "360px";
+        if (plotDiv) plotDiv.style.minHeight = "340px";
         Plotly.react("chartWaterfall", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         document.getElementById("wfVector").textContent = `Vector: ${v}`;
         return;
@@ -1383,7 +1388,7 @@
         type: "waterfall",
         x, y, measure: measures,
         text: y.map(vv => fmtNum(vv, 0)),
-        textposition: "auto",          // evita etiquetas fuera del canvas
+        textposition: "auto",
         textfont: { size: 11 },
         connector: { line: { color: getThemeColors().grid } },
         decreasing: { marker: { color: "#ef4444" } },
@@ -1397,15 +1402,15 @@
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
       layout.margin.t = 30;
-      layout.margin.b = 80;  // espacio para etiquetas y base
+      layout.margin.b = 80;
       layout.margin.l = 60;
       layout.margin.r = 20;
 
-      // Altura moderada según #barras (con límite) para evitar “panel infinito”
+      // Altura moderada con límite
       const nBars = x.length;
-      const base = 360;          // mínimo
-      const step = 18;           // incremento suave por grupo de barras
-      const maxH = 560;          // límite superior para no crecer demasiado
+      const base = 340;
+      const step = 18;
+      const maxH = 560;
       const desired = Math.min(maxH, base + Math.floor(nBars / 6) * step);
 
       if (plotDiv) plotDiv.style.minHeight = desired + "px";
@@ -1619,8 +1624,8 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();
-      plotWaterfall();              // <-- Waterfall ajustado
+      renderReturnBarsChart();  // ReturnBars ajustado
+      plotWaterfall();          // Waterfall ajustado
       plotDecomposition();
       plotDrawdown();
       plotHeatmap();
@@ -1656,7 +1661,7 @@
       const list = document.getElementById("vectorList");
       const count = document.getElementById("vmCount");
 
-      // construir lista si está vacía o refrescar selección
+      // construir lista (o refrescar selección)
       list.innerHTML = "";
       const frag = document.createDocumentFragment();
       state.vectorNames.forEach(v => {
