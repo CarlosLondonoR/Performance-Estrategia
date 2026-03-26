@@ -23,8 +23,8 @@
       --chip-active: #dbeafe;
 
       /* alturas para sticky */
-      --hdr-h: 51px;        /* 20% menos que 64px anterior */
-      --gap-h: 12px;        /* gap vertical entre filas del grid */
+      --hdr-h: 51px;
+      --gap-h: 12px;
       --ctrl-top: calc(var(--hdr-h) + var(--gap-h));
     }
 
@@ -35,7 +35,7 @@
       --muted: #9ca3af;
       --accent: #60a5fa;
       --grid: #1f2937;
-      --edge: #0f172a; /* borde más marcado en dark */
+      --edge: #0f172a;
       --chip: #1e293b;
       --chip-active: #1d4ed8;
     }
@@ -67,12 +67,11 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 8px 16px; /* más compacto */
+      padding: 8px 16px;
       background: var(--panel);
       border-radius: 12px;
-      border: 1px solid var(--edge);                /* borde más marcado */
-      box-shadow: 0 1px 0 var(--grid) inset,        /* línea interna */
-                  0 4px 12px rgba(0,0,0,0.06);      /* sombra externa suave */
+      border: 1px solid var(--edge);
+      box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
       min-height: var(--hdr-h);
     }
 
@@ -82,7 +81,6 @@
       line-height: 1.2;
     }
 
-    /* Botón icon-only (tema) */
     .icon-btn {
       height: 34px;
       width: 34px;
@@ -103,13 +101,11 @@
     .controls, .metrics {
       background: var(--panel);
       border-radius: 12px;
-      padding: 6px 12px;  /* ~35% menos que antes */
-      border: 1px solid var(--edge);                /* borde más marcado */
-      box-shadow: 0 1px 0 var(--grid) inset,
-                  0 4px 12px rgba(0,0,0,0.06);      /* sombra externa */
+      padding: 6px 12px;
+      border: 1px solid var(--edge);
+      box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    /* ===== Controles (sticky y compactos) ===== */
     .controls {
       position: sticky;
       top: var(--ctrl-top);
@@ -119,7 +115,7 @@
     .controls-grid {
       display: grid;
       grid-template-columns: 1.2fr 1fr 1fr 1fr;
-      gap: 8px;               /* más compacto */
+      gap: 8px;
       align-items: start;
     }
 
@@ -135,7 +131,7 @@
     }
 
     select, input, button {
-      padding: 5px 8px;  /* más compacto */
+      padding: 5px 8px;
       border-radius: 10px;
       border: 1px solid var(--grid);
       background: var(--panel);
@@ -183,7 +179,7 @@
     .metric {
       padding: 10px 12px;
       background: var(--panel);
-      border: 1px solid var(--edge);              /* más marcado */
+      border: 1px solid var(--edge);
       border-radius: 12px;
       box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
     }
@@ -200,20 +196,20 @@
     .card {
       position: relative;
       background: var(--panel);
-      border: 1px solid var(--edge);              /* más marcado */
+      border: 1px solid var(--edge);
       border-radius: 12px;
       padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       overflow: hidden; /* por defecto */
-      box-shadow: 0 1px 0 var(--grid) inset, 0 6px 14px rgba(0,0,0,0.06); /* sombra un pelín más notoria */
+      box-shadow: 0 1px 0 var(--grid) inset, 0 6px 14px rgba(0,0,0,0.06);
     }
     .card.span-2 { grid-column: 1 / -1; }
 
-    /* Evitar cortes SOLO en Waterfall; ReturnBars se mantiene contenido */
+    /* Mantener visible solo el Waterfall; contener ReturnBars */
     #cardWaterfall { overflow: visible; }
-    #cardReturnBars { overflow: hidden; } /* clave para que no se salga del módulo */
+    #cardReturnBars { overflow: hidden; }  /* <-- clave para que no se salga del módulo */
 
     .card h3 {
       margin: 0;
@@ -228,7 +224,7 @@
 
     .plot {
       flex: 1;
-      min-height: 300px; /* base compacta para gráficos estándar */
+      min-height: 300px;
     }
 
     .small { font-size: 12px; color: var(--muted); }
@@ -479,7 +475,7 @@
         <div id="chartIndexed" class="plot"></div>
       </div>
 
-      <!-- 3) Barras de retorno — FULL (altura dinámica y alineada al módulo) -->
+      <!-- 3) Barras de retorno — FULL (altura sincronizada con el módulo) -->
       <div class="card span-2" id="cardReturnBars">
         <h3>
           <span>Retorno acumulado por asset class</span>
@@ -746,7 +742,7 @@
       focusVector: null,
       dateFrom: null,
       dateTo: null,
-      windowKey: "ALL", // '1M'|'3M'|'6M'|'YTD'|'1Y'|'2Y'|'3Y'|'ALL'|'CUSTOM'
+      windowKey: "ALL",
       visibility: {
         indexed: new Set(),
         returnBars: new Set(),
@@ -1157,7 +1153,7 @@
         const asset = trace?.name;
         if (!asset) return false;
         toggleChartAsset(chartKey, asset);
-        return false; // prevenimos el toggling nativo y usamos nuestro estado
+        return false;
       });
       gd.__legendToggleBound = true;
     }
@@ -1278,9 +1274,10 @@
     }
 
     /* =========================================================
-       3) BARRAS DE RETORNO — REFORMULADO PARA ALINEAR ALTURA
-       - Mantiene: leyenda, colores por grupo, datos y etiquetas.
-       - Nuevo: cálculo robusto de altura + sincronización card/grid.
+       3) BARRAS DE RETORNO — AJUSTE DE VISTA EN EL MÓDULO
+       - Mantiene leyenda, colores por grupo y datos.
+       - Sin desbordes y sin “gráfico pequeño”.
+       - Altura del gráfico fijada y sincronizada con el card.
        ========================================================= */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
@@ -1293,11 +1290,22 @@
       const card = document.getElementById("cardReturnBars");
       const plotDiv = document.getElementById("chartReturnBars");
 
+      // Caso vacío
       if (!visibleAssets.length || !idxs.length) {
-        if (card) card.style.gridRow = "span 1";
         if (plotDiv) {
-          plotDiv.style.height = "360px";   // altura controlada
+          plotDiv.style.height = "360px";
           plotDiv.style.minHeight = "360px";
+        }
+        if (card) {
+          const baseRow = 430;
+          const headerH = card.querySelector("h3")?.offsetHeight || 0;
+          const toolbarH = card.querySelector(".chart-toolbar")?.offsetHeight || 0;
+          const cs = getComputedStyle(card);
+          const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+          const borderV = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+          const cardH = headerH + toolbarH + 360 + padV + borderV;
+          card.style.height = cardH + "px";
+          card.style.gridRow = `span ${Math.max(1, Math.ceil(cardH / baseRow))}`;
         }
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         return;
@@ -1310,7 +1318,7 @@
         group: state.groupsByAsset[asset] || "OTRO"
       })).sort((a, b) => b.ret - a.ret);
 
-      // Colores por grupo (mantener lo que ya funciona)
+      // Colores por grupo (mantener lo ya definido): RV azul, RF ámbar, FX violeta
       const GROUP_COLOR = { RV: "#1d4ed8", RF: "#f59e0b", FX: "#8b5cf6", OTRO: "#64748b" };
 
       // Un trace por barra para conservar toggles por leyenda
@@ -1321,35 +1329,33 @@
         x: [d.ret],
         y: [d.asset],
         marker: { color: GROUP_COLOR[d.group] || GROUP_COLOR.OTRO },
-        texttemplate: "%{x:.1%}",      // etiqueta XX.X%
+        texttemplate: "%{x:.1%}",
         textposition: "outside",
-        cliponaxis: false,              // evita corte de etiqueta "outside"
+        cliponaxis: false,               // evita corte de etiquetas fuera
         textfont: { size: 11 },
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
-      // ---- Altura calculada y sincronizada con el contenedor ----
-      // Estos valores equilibran legibilidad y límite razonable.
-      const PER_BAR = 22;        // px por categoría
-      const EXTRA = 230;         // ejes + título + toolbar + leyenda + etiquetas
-      const MIN_H = 360;         // mínimo razonable
-      const MAX_H = 880;         // tope para no crecer indefinidamente
-      const desired = Math.round(PER_BAR * data.length + EXTRA);
-      const plotHeight = Math.max(MIN_H, Math.min(MAX_H, desired));
+      // ---- Altura del gráfico (robusta) ----
+      const PER_BAR = 22;   // px por barra visible
+      const PLOT_MIN = 360; // mínimo para evitar “gráfico pequeño”
+      const PLOT_MAX = 820; // tope para no crecer indefinidamente
+      const desiredPlotH = Math.round(PER_BAR * data.length + 240); // 240 = ejes + leyenda + labels
+      const plotHeight = Math.max(PLOT_MIN, Math.min(PLOT_MAX, desiredPlotH));
 
-      // Aplicar alto fijo al div del gráfico (no solo min-height)
+      // Aplicar alto al contenedor del gráfico
       plotDiv.style.height = plotHeight + "px";
       plotDiv.style.minHeight = plotHeight + "px";
 
-      // Layout base + ajustes para labels outside y leyenda inferior
+      // Layout del gráfico
       const layout = baseLayout("");
-      layout.height = plotHeight;      // fija altura del SVG de Plotly
       layout.autosize = false;
+      layout.height = plotHeight;            // alto exacto del SVG
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
 
-      // Rango simétrico alrededor de 0 con reserva para etiquetas fuera
+      // Rango simétrico y holgura para etiquetas "outside"
       const maxAbs = Math.max(1e-9, ...data.map(d => Math.abs(d.ret) || 0));
       layout.xaxis.range = [-maxAbs * 1.15, maxAbs * 1.15];
 
@@ -1358,22 +1364,31 @@
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
 
-      // Márgenes para nombres y etiquetas "outside"
+      // Márgenes: suficiente para nombres (izq.) y etiquetas outside (der.)
       layout.margin.l = 220;
-      layout.margin.r = 130;   // margen derecho generoso para outside
+      layout.margin.r = 150;
+      layout.margin.t = 30;
+      layout.margin.b = 100;
       layout.bargap = 0.42;
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
 
-      // Sincronizar la altura del card con el contenido real (grid-auto-rows = 430)
-      // Usamos scrollHeight luego de que Plotly haya sido renderizado.
+      // ---- Sincronizar altura del card con el contenido real ----
       requestAnimationFrame(() => {
         if (!card) return;
         const baseRow = 430;
-        // El card incluye: título + toolbar + padding + plot (alto ya fijado)
-        const total = card.scrollHeight;
-        const span = Math.max(1, Math.ceil(total / baseRow));
-        card.style.gridRow = `span ${span}`;
+        const headerH = card.querySelector("h3")?.offsetHeight || 0;
+        const toolbarH = card.querySelector(".chart-toolbar")?.offsetHeight || 0;
+        const cs = getComputedStyle(card);
+        const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const borderV = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+
+        // Altura total del card = título + toolbar + plot + paddings + bordes + gap interno (~8px)
+        const GAP = 8;
+        const cardH = headerH + toolbarH + plotHeight + padV + borderV + GAP;
+
+        card.style.height = cardH + "px";
+        card.style.gridRow = `span ${Math.max(1, Math.ceil(cardH / baseRow))}`;
       });
 
       bindLegendToggle("chartReturnBars", "returnBars");
@@ -1390,7 +1405,6 @@
       return agg;
     }
 
-    // === Waterfall ajustado (altura moderada + sin cortes) ===
     function plotWaterfall() {
       if (!window.Plotly) return;
 
@@ -1668,7 +1682,7 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();  // módulo reformulado
+      renderReturnBarsChart();  // <-- módulo corregido
       plotWaterfall();
       plotDecomposition();
       plotDrawdown();
@@ -1873,4 +1887,3 @@
     })();
   </script>
 </body>
-</html>
