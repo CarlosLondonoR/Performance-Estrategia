@@ -166,7 +166,7 @@
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-auto-rows: 430px;
+      grid-auto-rows: 430px; /* base para calcular spans dinámicos */
       gap: 12px;
     }
 
@@ -229,8 +229,6 @@
       line-height: 1.3;
       max-width: 100%;
     }
-
-    /* Se removió el botón Restaurar y chips del Waterfall */
 
     details.diagnostics {
       margin-left: 8px;
@@ -377,14 +375,22 @@
 
     <section class="charts">
       <!-- 1) Alpha acumulado — FULL -->
-      <div class="card span-2">
-        <h3>Alpha acumulado por vector <span class="small">Comparativo</span></h3>
+      <div class="card span-2" id="cardCumulative">
+        <h3>
+          <span>Alpha acumulado por vector</span>
+          <span class="small" id="sfxCumulative"></span>
+          <span class="small">Comparativo</span>
+        </h3>
         <div id="chartCumulative" class="plot"></div>
       </div>
 
       <!-- 2) Indexados — FULL -->
-      <div class="card span-2">
-        <h3>Evolución de asset classes indexada a base 100 <span class="small">Haz clic en la leyenda para ocultar/mostrar</span></h3>
+      <div class="card span-2" id="cardIndexed">
+        <h3>
+          <span>Evolución de asset classes indexada a base 100</span>
+          <span class="small" id="sfxIndexed"></span>
+          <span class="small">Haz clic en la leyenda para ocultar/mostrar</span>
+        </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="ALL">Todos</button>
@@ -393,14 +399,18 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">La leyenda no afecta el cálculo de “Todos/Vigentes”. Usa “Todos” para volver a ver todas las series.</div>
+          <div class="chart-note">La leyenda no afecta el cálculo de filtros. Usa “Todos” para restaurar todas las series.</div>
         </div>
         <div id="chartIndexed" class="plot"></div>
       </div>
 
-      <!-- 3) Barras de retorno — FULL -->
-      <div class="card span-2">
-        <h3>Retorno acumulado por asset class <span class="small">Barras horizontales ordenadas de mayor a menor</span></h3>
+      <!-- 3) Barras de retorno — FULL (altura dinámica) -->
+      <div class="card span-2" id="cardReturnBars">
+        <h3>
+          <span>Retorno acumulado por asset class</span>
+          <span class="small" id="sfxReturnBars"></span>
+          <span class="small">Barras horizontales ordenadas de mayor a menor</span>
+        </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
             <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="ALL">Todos</button>
@@ -415,8 +425,12 @@
       </div>
 
       <!-- 4) Waterfall — FULL -->
-      <div class="card span-2">
-        <h3>Waterfall — Contribución por asset class <span id="wfVector" class="small"></span></h3>
+      <div class="card span-2" id="cardWaterfall">
+        <h3>
+          <span>Waterfall — Contribución por asset class</span>
+          <span class="small" id="sfxWaterfall"></span>
+          <span class="small" id="wfVector"></span>
+        </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ALL">Todos</button>
@@ -431,29 +445,45 @@
       </div>
 
       <!-- 5) Descomposición — FULL -->
-      <div class="card span-2">
-        <h3>Descomposición: Allocation vs Selection (RV/RF) vs FX</h3>
+      <div class="card span-2" id="cardDecomposition">
+        <h3>
+          <span>Descomposición: Allocation vs Selection (RV/RF) vs FX</span>
+          <span class="small" id="sfxDecomposition"></span>
+        </h3>
         <div id="chartDecomposition" class="plot"></div>
       </div>
 
       <!-- Restantes en parejas -->
-      <div class="card">
-        <h3>Curva de Drawdown <span class="small">Por vector</span></h3>
+      <div class="card" id="cardDrawdown">
+        <h3>
+          <span>Curva de Drawdown</span>
+          <span class="small" id="sfxDrawdown"></span>
+          <span class="small">Por vector</span>
+        </h3>
         <div id="chartDrawdown" class="plot"></div>
       </div>
 
-      <div class="card">
-        <h3>Heatmap — Contribución por mes y asset class (bps)</h3>
+      <div class="card" id="cardHeatmap">
+        <h3>
+          <span>Heatmap — Contribución por mes y asset class (bps)</span>
+          <span class="small" id="sfxHeatmap"></span>
+        </h3>
         <div id="chartHeatmap" class="plot"></div>
       </div>
 
-      <div class="card">
-        <h3>Ranking de contribución por asset class (bps)</h3>
+      <div class="card" id="cardBars">
+        <h3>
+          <span>Ranking de contribución por asset class (bps)</span>
+          <span class="small" id="sfxBars"></span>
+        </h3>
         <div id="chartBars" class="plot"></div>
       </div>
 
-      <div class="card">
-        <h3>Distribución del alpha diario (bps)</h3>
+      <div class="card" id="cardHist">
+        <h3>
+          <span>Distribución del alpha diario (bps)</span>
+          <span class="small" id="sfxHist"></span>
+        </h3>
         <div id="chartHist" class="plot"></div>
       </div>
     </section>
@@ -669,6 +699,7 @@
       focusVector: null,
       dateFrom: null,
       dateTo: null,
+      windowKey: "ALL", // '1M'|'3M'|'6M'|'YTD'|'1Y'|'2Y'|'3Y'|'ALL'|'CUSTOM'
       visibility: {
         indexed: new Set(),
         returnBars: new Set(),
@@ -693,16 +724,6 @@
       if (!state.visibility.returnBars || !state.visibility.returnBars.size) state.visibility.returnBars = new Set(allReturnAssets);
       const wfAssets = getFocusVectorAssetsOrdered();
       if (!state.visibility.waterfall || !state.visibility.waterfall.size) state.visibility.waterfall = new Set(wfAssets);
-    }
-
-    function restoreChartVisibility(chartKey) {
-      // (Botón restaurar removido; se mantiene helper para usos internos si se requiere)
-      if (chartKey === "waterfall") {
-        state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
-      } else {
-        state.visibility[chartKey] = new Set(getOrderedReturnAssets());
-      }
-      renderAll();
     }
 
     function setChartGroupVisibility(chartKey, group) {
@@ -951,7 +972,7 @@
     }
 
     // =============================
-    // MÉTRICAS
+    // MÉTRICAS / RANGOS
     // =============================
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
@@ -1102,6 +1123,9 @@
     }
 
     function getCurrentWindowIdxs() {
+      if (state.windowKey && state.windowKey !== "ALL" && state.windowKey !== "CUSTOM") {
+        return idxWindowByKey(state.windowKey);
+      }
       if (state.dateFrom || state.dateTo) {
         return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
       }
@@ -1110,6 +1134,41 @@
 
     function selectedVectorsList() {
       return state.selectedVectors.length ? state.selectedVectors : [];
+    }
+
+    function fmtDateHuman(d) {
+      if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "";
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const yy = d.getUTCFullYear();
+      return `${dd}/${mm}/${yy}`;
+    }
+
+    function getWindowLabel() {
+      const quick = new Set(["1M","3M","6M","YTD","1Y","2Y","3Y","ALL"]);
+      if (quick.has(state.windowKey)) {
+        return state.windowKey === "ALL" ? "Desde inicio" : state.windowKey;
+      }
+      const from = state.dateFrom ? fmtDateHuman(state.dateFrom) : fmtDateHuman(state.dates[0]);
+      const to = state.dateTo ? fmtDateHuman(state.dateTo) : fmtDateHuman(state.dates[state.dates.length - 1]);
+      return `${from} - ${to}`;
+    }
+
+    function updateTitleSuffixes() {
+      const label = getWindowLabel();
+      const set = (id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = `(${label})`;
+      };
+      set("sfxCumulative");
+      set("sfxIndexed");
+      set("sfxReturnBars");
+      set("sfxWaterfall");
+      set("sfxDecomposition");
+      set("sfxDrawdown");
+      set("sfxHeatmap");
+      set("sfxBars");
+      set("sfxHist");
     }
 
     // =============================
@@ -1122,7 +1181,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 }, // más margen abajo para leyenda
+        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
         hovermode: "x unified",
         xaxis: {
           showgrid: true,
@@ -1133,10 +1192,10 @@
           showgrid: true,
           gridcolor: c.grid,
           zeroline: true,
-          zerolinecolor: c.grid
+          zerolinecolor: c.grid,
+          automargin: true
         },
         showlegend: true,
-        // Leyenda fuera del área de datos (abajo)
         legend: { orientation: "h", x: 0, y: -0.2, xanchor: "left", yanchor: "top" }
       };
     }
@@ -1180,14 +1239,21 @@
         const alpha = state.perVector[v].alpha;
         const aw = vectorSubarrayByIdx(alpha, idxs);
         const awBps = toBpsArray(Array.from(aw));
+
+        // Cumulado en la ventana y normalizado para empezar en 0
         const cum = cumulativeSum(Float64Array.from(awBps));
+        let base = 0;
+        for (let k = 0; k < cum.length; k++) {
+          if (Number.isFinite(cum[k])) { base = cum[k]; break; }
+        }
+        const yShift = cum.map(val => Number.isFinite(val) ? (val - base) : NaN);
 
         traces.push({
           type: "scatter",
           mode: "lines",
           name: v,
           x,
-          y: Array.from(cum),
+          y: yShift,
           line: { color: palette(i), width: 2 },
           customdata: Array.from(awBps),
           hovertemplate: "%{x|%d-%m-%Y}<br>Alpha diario: %{customdata:.0f} bps<br>Cumul.: %{y:.0f} bps<extra>" + v + "</extra>"
@@ -1307,7 +1373,13 @@
       const visible = state.visibility.returnBars || new Set(allAssets);
       const visibleAssets = allAssets.filter(a => visible.has(a));
 
+      const card = document.getElementById("cardReturnBars");
+      const plotDiv = document.getElementById("chartReturnBars");
+
       if (!visibleAssets.length || !idxs.length) {
+        // Altura mínima cuando no hay datos
+        if (card) card.style.gridRow = "span 1";
+        if (plotDiv) plotDiv.style.minHeight = "320px";
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         return;
       }
@@ -1335,6 +1407,18 @@
       layout.yaxis.categoryorder = "array";
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
+      layout.margin.l = 220; // más espacio para etiquetas largas
+
+      // === Altura dinámica en función de # de barras ===
+      const perBar = 26; // px por barra
+      const extra = 160; // encabezado, leyenda y paddings
+      const desired = Math.max(320, Math.round(perBar * data.length + extra));
+      if (plotDiv) plotDiv.style.minHeight = desired + "px";
+      if (card) {
+        const baseRow = 430; // coincide con grid-auto-rows
+        const span = Math.max(1, Math.ceil(desired / baseRow));
+        card.style.gridRow = `span ${span}`;
+      }
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
       bindLegendToggle("chartReturnBars", "returnBars");
@@ -1627,6 +1711,7 @@
       }
 
       ensureVisibilityDefaults();
+      updateTitleSuffixes();
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
@@ -1654,11 +1739,7 @@
 
         if (action === "group") {
           setChartGroupVisibility(chart, group);
-        } else if (action === "restore") {
-          // (ya no hay botón restaurar)
-          restoreChartVisibility(chart);
         } else if (action === "toggle-asset") {
-          // (chips eliminados en Waterfall)
           toggleChartAsset(chart, asset);
         }
       });
@@ -1680,13 +1761,20 @@
         vFocus.appendChild(opt2);
       });
 
-      // Selección múltiple por defecto
-      state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
+      // === Selección múltiple por defecto: "Cual" y "Final" si existen (case-insensitive) ===
+      const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
+      const defaults = [];
+      if (lower.has("cual")) defaults.push(lower.get("cual"));
+      if (lower.has("final")) defaults.push(lower.get("final"));
+      if (defaults.length === 0) {
+        // fallback: primeras 2-3 como antes
+        state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
+      } else {
+        state.selectedVectors = Array.from(new Set(defaults));
+      }
 
-      // Vector foco por defecto: "final" si existe, si no, primero
-      state.focusVector = state.vectorNames.includes("final")
-        ? "final"
-        : (state.vectorNames[0] || null);
+      // === Vector foco por defecto: "final" (case-insensitive) o primero disponible ===
+      state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
 
       for (const opt of vMulti.options) opt.selected = state.selectedVectors.includes(opt.value);
       vFocus.value = state.focusVector || "";
@@ -1744,6 +1832,7 @@
         const dt = state.dates[idxs[idxs.length - 1]];
         state.dateFrom = df;
         state.dateTo = dt;
+        state.windowKey = key; // guardar etiqueta de ventana rápida
         dFrom.value = toISODate(df);
         dTo.value = toISODate(dt);
         renderAll();
@@ -1759,12 +1848,14 @@
           alert("Fecha desde no puede ser mayor que fecha hasta.");
           return;
         }
+        state.windowKey = "CUSTOM";
         renderAll();
       });
 
       document.getElementById("resetDates").addEventListener("click", () => {
         state.dateFrom = null;
         state.dateTo = null;
+        state.windowKey = "ALL";
         dFrom.value = "";
         dTo.value = "";
         renderAll();
