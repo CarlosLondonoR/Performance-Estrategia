@@ -20,6 +20,10 @@
       --bad: #dc2626;
       --chip: #eef2ff;
       --chip-active: #dbeafe;
+
+      /* Alturas/offsets para sticky */
+      --header-h: 68px;  /* valor inicial, se recalcula en JS */
+      --gap: 12px;
     }
 
     [data-theme="dark"] {
@@ -45,18 +49,22 @@
     .app {
       display: grid;
       grid-template-rows: auto auto auto 1fr;
-      gap: 12px;
+      gap: var(--gap);
       padding: 16px;
       max-width: 1600px;
       margin: 0 auto;
     }
 
+    /* ===== Sticky Header y Controles ===== */
     header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 12px 16px;
+      padding: 10px 14px; /* más compacto */
       background: var(--panel);
       border-radius: 12px;
       box-shadow: 0 1px 0 var(--grid) inset;
@@ -64,25 +72,37 @@
 
     header .title {
       font-weight: 700;
-      font-size: 18px;
+      font-size: 17px;
     }
 
     header .subtitle {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
     }
 
-    .controls, .metrics {
+    .controls {
+      position: sticky;
+      top: calc(var(--header-h) + var(--gap));
+      z-index: 40;
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 10px 14px; /* más compacto */
+      box-shadow: 0 1px 0 var(--grid) inset;
+    }
+
+    .metrics {
       background: var(--panel);
       border-radius: 12px;
       padding: 12px 16px;
       box-shadow: 0 1px 0 var(--grid) inset;
     }
 
+    /* ===== Controles compactos ===== */
     .controls-grid {
       display: grid;
-      grid-template-columns: 1.5fr 1fr 1fr 1.2fr 1fr;
-      gap: 12px;
+      grid-template-columns: 1.2fr 1fr 1.1fr 1fr;
+      gap: 10px;
+      align-items: start;
     }
 
     .control {
@@ -97,11 +117,12 @@
     }
 
     select, input, button {
-      padding: 8px 10px;
+      padding: 7px 9px; /* más compacto */
       border-radius: 10px;
       border: 1px solid var(--grid);
       background: var(--panel);
       color: var(--text);
+      font-size: 13px;
     }
 
     button {
@@ -130,6 +151,19 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
     }
 
     .chip {
@@ -166,7 +200,7 @@
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-auto-rows: 430px; /* base para calcular spans dinámicos */
+      grid-auto-rows: 430px;
       gap: 12px;
     }
 
@@ -248,9 +282,67 @@
       max-height: 220px;
     }
 
+    /* ===== Modal selector de vectores ===== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal {
+      width: min(620px, 92vw);
+      max-height: 76vh;
+      background: var(--panel);
+      border: 1px solid var(--grid);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal header {
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--grid);
+      padding: 10px 14px;
+      border-radius: 12px 12px 0 0;
+      box-shadow: none;
+      z-index: 1;
+    }
+    .modal .content {
+      padding: 10px 14px;
+      overflow: auto;
+    }
+    .modal .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--grid);
+      border-radius: 0 0 12px 12px;
+      background: var(--panel);
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+    }
+    .vp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+    }
+    .vp-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
     @media (max-width: 1200px) {
       .controls-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
       .metrics {
         grid-template-columns: 1fr 1fr 1fr;
@@ -260,6 +352,9 @@
       }
       .card.span-2 {
         grid-column: auto;
+      }
+      .vp-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -272,7 +367,7 @@
 </head>
 <body>
   <div class="app">
-    <header>
+    <header id="appHeader">
       <div>
         <div class="title">Alpha Dashboard — Vectores de Recomendación</div>
         <div class="subtitle">Lectura de CSV locales · Alpha en bps · Descomposición · Gráficas dinámicas con Plotly local</div>
@@ -283,18 +378,27 @@
           <summary>Diagnóstico</summary>
           <pre id="diagBox">—</pre>
         </details>
-        <button id="themeToggle" class="btn">Modo oscuro</button>
+        <!-- Botón solo con íconos -->
+        <button id="themeToggle" class="btn icon-btn" aria-label="Cambiar tema">
+          <!-- Sol -->
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 4.5a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.5a1 1 0 0 1 1-1Zm0 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM4.5 13a1 1 0 0 1-1-1 1 1 0 0 1 1-1H6a1 1 0 1 1 0 2H4.5Zm13.5-1a1 1 0 0 1 1-1H20.5a1 1 0 0 1 0 2H19a1 1 0 0 1-1-1ZM6.22 6.22a1 1 0 0 1 1.42 0L8.28 6.86a1 1 0 1 1-1.42 1.42L6.22 7.64a1 1 0 0 1 0-1.42Zm9.5 9.5a1 1 0 0 1 1.42 0l.64.64a1 1 0 0 1-1.42 1.42l-.64-.64a1 1 0 0 1 0-1.42Zm0-8.08  .64-.64a1 1 0 1 1 1.42 1.42l-.64.64a1 1 0 0 1-1.42-1.42Zm-9.5 9.5 .64.64a1 1 0 1 1-1.42 1.42l-.64-.64a1 1 0 1 1 1.42-1.42ZM12 17a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1Z"/>
+          </svg>
+          <!-- Luna -->
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/>
+          </svg>
+        </button>
       </div>
     </header>
 
-    <section class="controls">
+    <section class="controls" id="controlsSection">
       <div class="controls-grid">
+        <!-- Selector de vectores con modal -->
         <div class="control">
           <label>Vectores (múltiple)</label>
-          <select id="vectorMulti" multiple size="6"></select>
           <div class="row">
-            <button class="btn ghost" id="selectAll" type="button">Todos</button>
-            <button class="btn ghost" id="selectNone" type="button">Ninguno</button>
+            <button class="btn ghost" id="openVectorPicker" type="button">Vectores (0)</button>
           </div>
         </div>
 
@@ -329,13 +433,6 @@
             <button class="btn ghost" id="resetDates" type="button">Reset</button>
           </div>
           <span class="small" id="dateSummary"></span>
-        </div>
-
-        <div class="control">
-          <label>Estado</label>
-          <div class="small">Fechas comunes: <span id="dateCount">0</span></div>
-          <div class="small">Activos mapeados: <span id="assetCount">0</span></div>
-          <div class="small">Vectores detectados: <span id="vectorCount">0</span></div>
         </div>
       </div>
     </section>
@@ -424,7 +521,7 @@
         <div id="chartReturnBars" class="plot"></div>
       </div>
 
-      <!-- 4) Waterfall — FULL -->
+      <!-- 4) Waterfall — FULL (altura controlada, sin textos afuera) -->
       <div class="card span-2" id="cardWaterfall">
         <h3>
           <span>Waterfall — Contribución por asset class</span>
@@ -439,9 +536,9 @@
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RF">Solo RF</button>
             <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="FX">Solo FX</button>
           </div>
-          <div class="chart-note">Filtra por grupo o “Vigentes”. (Se eliminaron los chips de activos individuales).</div>
+          <div class="chart-note">Filtra por grupo o “Vigentes”. Sin textos externos para evitar cortes.</div>
         </div>
-        <div id="chartWaterfall" class="plot"></div>
+        <div id="chartWaterfall" class="plot" style="min-height: 380px;"></div>
       </div>
 
       <!-- 5) Descomposición — FULL -->
@@ -489,6 +586,28 @@
     </section>
   </div>
 
+  <!-- Modal selector de vectores -->
+  <div class="modal-backdrop" id="vectorModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vectorModalTitle">
+      <header>
+        <strong id="vectorModalTitle">Selecciona los vectores</strong>
+      </header>
+      <div class="content">
+        <div class="vp-grid" id="vectorPickerList"><!-- checkboxes aquí --></div>
+      </div>
+      <div class="footer">
+        <div class="btn-group">
+          <button class="btn ghost" id="vpSelectAll" type="button">Todos</button>
+          <button class="btn ghost" id="vpSelectNone" type="button">Ninguno</button>
+        </div>
+        <div class="btn-group">
+          <button class="btn ghost" id="vpCancel" type="button">Cancelar</button>
+          <button class="btn" id="vpApply" type="button">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =============================
     // UTILIDADES GENERALES
@@ -528,7 +647,7 @@
       FX: ["EURUSD", "USDYEN"]
     };
 
-    // Activos que NO deben incluirse cuando se presione "Vigentes"
+    // Assets excluidos en "Vigentes"
     const INACTIVE_FOR_ACTIVE_VIEW = new Set([
       "Eurozona", "TIPS - SD", "TIPS - LD", "IG - SD", "IG - LD", "HY - SD", "EMD LC", "Caja"
     ]);
@@ -540,21 +659,15 @@
       if (!str) return new Date(NaN);
 
       let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(str);
-      if (m) {
-        return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-      }
+      if (m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
 
       m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
-      if (m) {
-        return new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
-      }
+      if (m) return new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
 
       return new Date(NaN);
     }
 
-    function toISODate(d) {
-      return d.toISOString().slice(0, 10);
-    }
+    function toISODate(d) { return d.toISOString().slice(0, 10); }
 
     function toNumberCell(s) {
       if (s === null || s === undefined) return NaN;
@@ -564,30 +677,12 @@
       return Number.isNaN(x) ? NaN : x;
     }
 
-    function toBps(x) {
-      return Number.isFinite(x) ? x * 10000 : NaN;
-    }
+    function toBps(x) { return Number.isFinite(x) ? x * 10000 : NaN; }
+    function toBpsArray(arr) { return arr.map(toBps); }
 
-    function toBpsArray(arr) {
-      const out = new Array(arr.length);
-      for (let i = 0; i < arr.length; i++) out[i] = toBps(arr[i]);
-      return out;
-    }
-
-    function fmtBps(x, digits = 0) {
-      if (!Number.isFinite(x)) return "—";
-      return `${x.toFixed(digits)} bps`;
-    }
-
-    function fmtPct(x, digits = 2) {
-      if (!Number.isFinite(x)) return "—";
-      return `${(x * 100).toFixed(digits)}%`;
-    }
-
-    function fmtNum(x, digits = 6) {
-      if (!Number.isFinite(x)) return "—";
-      return x.toFixed(digits);
-    }
+    function fmtBps(x, digits = 0) { return Number.isFinite(x) ? `${x.toFixed(digits)} bps` : "—"; }
+    function fmtPct(x, digits = 2) { return Number.isFinite(x) ? `${(x*100).toFixed(digits)}%` : "—"; }
+    function fmtNum(x, digits = 6) { return Number.isFinite(x) ? x.toFixed(digits) : "—"; }
 
     function escapeHtml(str) {
       return String(str)
@@ -605,26 +700,15 @@
 
       const parseLine = (line) => {
         const out = [];
-        let cur = "";
-        let inQuotes = false;
-
+        let cur = "", inQuotes = false;
         for (let i = 0; i < line.length; i++) {
           const ch = line[i];
           if (ch === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-              cur += '"';
-              i++;
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (ch === delimiter && !inQuotes) {
-            out.push(cur);
-            cur = "";
-          } else {
-            cur += ch;
-          }
+            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+            else inQuotes = !inQuotes;
+          } else if (ch === delimiter && !inQuotes) { out.push(cur); cur = ""; }
+          else { cur += ch; }
         }
-
         out.push(cur);
         return out.map(s => s.trim());
       };
@@ -641,9 +725,7 @@
       return { headers, rows };
     }
 
-    function setStatus(text) {
-      document.getElementById("loadStatus").textContent = text;
-    }
+    function setStatus(text) { document.getElementById("loadStatus").textContent = text; }
 
     function appendDiag(msgObj) {
       const pre = document.getElementById("diagBox");
@@ -653,11 +735,12 @@
     }
 
     function getThemeColors() {
+      const doc = getComputedStyle(document.documentElement);
       return {
-        panel: getComputedStyle(document.documentElement).getPropertyValue("--panel").trim(),
-        text: getComputedStyle(document.documentElement).getPropertyValue("--text").trim(),
-        grid: getComputedStyle(document.documentElement).getPropertyValue("--grid").trim(),
-        muted: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim()
+        panel: doc.getPropertyValue("--panel").trim(),
+        text: doc.getPropertyValue("--text").trim(),
+        grid: doc.getPropertyValue("--grid").trim(),
+        muted: doc.getPropertyValue("--muted").trim()
       };
     }
 
@@ -667,16 +750,13 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 10, b: 45 },
+        margin: { l: 55, r: 20, t: 10, b: 60 },
         xaxis: { visible: false },
         yaxis: { visible: false },
         showlegend: false,
         annotations: [{
           text: message,
-          x: 0.5,
-          y: 0.5,
-          xref: "paper",
-          yref: "paper",
+          x: 0.5, y: 0.5, xref: "paper", yref: "paper",
           showarrow: false,
           font: { color: c.muted, size: 13 }
         }]
@@ -719,11 +799,11 @@
     }
 
     function ensureVisibilityDefaults() {
-      const allReturnAssets = getOrderedReturnAssets();
-      if (!state.visibility.indexed || !state.visibility.indexed.size) state.visibility.indexed = new Set(allReturnAssets);
-      if (!state.visibility.returnBars || !state.visibility.returnBars.size) state.visibility.returnBars = new Set(allReturnAssets);
-      const wfAssets = getFocusVectorAssetsOrdered();
-      if (!state.visibility.waterfall || !state.visibility.waterfall.size) state.visibility.waterfall = new Set(wfAssets);
+      const all = getOrderedReturnAssets();
+      if (!state.visibility.indexed.size) state.visibility.indexed = new Set(all);
+      if (!state.visibility.returnBars.size) state.visibility.returnBars = new Set(all);
+      const wf = getFocusVectorAssetsOrdered();
+      if (!state.visibility.waterfall.size) state.visibility.waterfall = new Set(wf);
     }
 
     function setChartGroupVisibility(chartKey, group) {
@@ -731,30 +811,21 @@
 
       if (chartKey === "waterfall") {
         const all = getFocusVectorAssetsOrdered();
-        if (group === "ALL") {
-          state.visibility.waterfall = new Set(all);
-        } else if (group === "ACTIVE") {
-          state.visibility.waterfall = new Set(filterActive(all));
-        } else {
-          state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
-        }
+        if (group === "ALL") state.visibility.waterfall = new Set(all);
+        else if (group === "ACTIVE") state.visibility.waterfall = new Set(filterActive(all));
+        else state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
       } else {
         const all = getOrderedReturnAssets();
-        if (group === "ALL") {
-          state.visibility[chartKey] = new Set(all);
-        } else if (group === "ACTIVE") {
-          state.visibility[chartKey] = new Set(filterActive(all));
-        } else {
-          state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
-        }
+        if (group === "ALL") state.visibility[chartKey] = new Set(all);
+        else if (group === "ACTIVE") state.visibility[chartKey] = new Set(filterActive(all));
+        else state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
       }
       renderAll();
     }
 
     function toggleChartAsset(chartKey, asset) {
       const current = state.visibility[chartKey] || new Set();
-      if (current.has(asset)) current.delete(asset);
-      else current.add(asset);
+      if (current.has(asset)) current.delete(asset); else current.add(asset);
       state.visibility[chartKey] = current;
       renderAll();
     }
@@ -804,13 +875,9 @@
       const gpISO = gpDates.map(toISODate);
 
       const setGP = new Set(gpISO);
-      const common = [];
-      for (let i = 0; i < trISO.length; i++) {
-        if (setGP.has(trISO[i])) common.push(trISO[i]);
-      }
-      if (!common.length) throw new Error("No hay fechas comunes entre trackrecord y gaps");
+      const commonISO = trISO.filter(d => setGP.has(d));
+      if (!commonISO.length) throw new Error("No hay fechas comunes entre trackrecord y gaps");
 
-      const commonISO = Array.from(new Set(common));
       const commonDateObjs = commonISO.map(s => new Date(s + "T00:00:00Z"));
       const idxTR = new Map(trISO.map((d, i) => [d, i]));
       const idxGP = new Map(gpISO.map((d, i) => [d, i]));
@@ -928,15 +995,9 @@
             const c = (Number.isFinite(gap) && Number.isFinite(ret)) ? (gap * ret) : 0;
             contribByAssetDaily[a][t] = c;
 
-            if (group === "RV") {
-              G_RV += (Number.isFinite(gap) ? gap : 0);
-              nRV++;
-            } else if (group === "RF") {
-              G_RF += (Number.isFinite(gap) ? gap : 0);
-              nRF++;
-            } else if (group === "FX") {
-              fxContrib += c;
-            }
+            if (group === "RV") { G_RV += (Number.isFinite(gap) ? gap : 0); nRV++; }
+            else if (group === "RF") { G_RF += (Number.isFinite(gap) ? gap : 0); nRF++; }
+            else if (group === "FX") { fxContrib += c; }
           }
 
           const alloc = (G_RV * ewRV) + (G_RF * ewRF);
@@ -1024,12 +1085,8 @@
       let acc = 0;
       for (let i = 0; i < arr.length; i++) {
         const v = arr[i];
-        if (Number.isFinite(v)) {
-          acc += v;
-          out[i] = acc;
-        } else {
-          out[i] = NaN;
-        }
+        if (Number.isFinite(v)) { acc += v; out[i] = acc; }
+        else out[i] = NaN;
       }
       return out;
     }
@@ -1039,10 +1096,7 @@
       let peak = -Infinity;
       for (let i = 0; i < cum.length; i++) {
         const v = cum[i];
-        if (!Number.isFinite(v)) {
-          out[i] = NaN;
-          continue;
-        }
+        if (!Number.isFinite(v)) { out[i] = NaN; continue; }
         peak = Math.max(peak, v);
         out[i] = v - peak;
       }
@@ -1051,9 +1105,7 @@
 
     function arrayMean(arr) {
       let s = 0, c = 0;
-      for (const v of arr) {
-        if (Number.isFinite(v)) { s += v; c++; }
-      }
+      for (const v of arr) { if (Number.isFinite(v)) { s += v; c++; } }
       return c ? s / c : NaN;
     }
 
@@ -1061,13 +1113,7 @@
       const m = arrayMean(arr);
       if (!Number.isFinite(m)) return NaN;
       let s = 0, c = 0;
-      for (const v of arr) {
-        if (Number.isFinite(v)) {
-          const d = v - m;
-          s += d * d;
-          c++;
-        }
-      }
+      for (const v of arr) { if (Number.isFinite(v)) { const d = v - m; s += d*d; c++; } }
       return c > 1 ? Math.sqrt(s / (c - 1)) : NaN;
     }
 
@@ -1075,13 +1121,12 @@
       const neg = arr.filter(v => Number.isFinite(v) && v < 0);
       if (neg.length <= 1) return NaN;
       let s = 0;
-      for (const v of neg) s += v * v;
+      for (const v of neg) s += v*v;
       return Math.sqrt(s / (neg.length - 1));
     }
 
     function maxDrawdown(cum) {
-      let peak = -Infinity;
-      let maxDD = 0;
+      let peak = -Infinity, maxDD = 0;
       for (const v of cum) {
         if (!Number.isFinite(v)) continue;
         peak = Math.max(peak, v);
@@ -1100,12 +1145,7 @@
       const Sortino = (Number.isFinite(mu) && Number.isFinite(dstd) && dstd > 0) ? (mu / dstd) * ANN_FACTOR : NaN;
       const hit = (() => {
         let pos = 0, c = 0;
-        for (const v of alphaWindow) {
-          if (Number.isFinite(v)) {
-            if (v > 0) pos++;
-            c++;
-          }
-        }
+        for (const v of alphaWindow) { if (Number.isFinite(v)) { if (v > 0) pos++; c++; } }
         return c ? (pos / c) : NaN;
       })();
       const MDD = maxDrawdown(cum);
@@ -1115,10 +1155,7 @@
 
     function sumAtIdx(arr, idxs) {
       let s = 0;
-      for (const i of idxs) {
-        const v = arr[i];
-        if (Number.isFinite(v)) s += v;
-      }
+      for (const i of idxs) { const v = arr[i]; if (Number.isFinite(v)) s += v; }
       return s;
     }
 
@@ -1156,10 +1193,7 @@
 
     function updateTitleSuffixes() {
       const label = getWindowLabel();
-      const set = (id) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = `(${label})`;
-      };
+      const set = (id) => { const el = document.getElementById(id); if (el) el.textContent = `(${label})`; };
       set("sfxCumulative");
       set("sfxIndexed");
       set("sfxReturnBars");
@@ -1174,29 +1208,18 @@
     // =============================
     // PLOTLY BASE
     // =============================
-    function baseLayout(title = "") {
+    function baseLayout() {
       const c = getThemeColors();
       return {
-        title: { text: title, font: { size: 12 }, x: 0, xanchor: "left" },
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
+        margin: { l: 55, r: 20, t: 30, b: 90 }, // margen inferior grande para leyenda
         hovermode: "x unified",
-        xaxis: {
-          showgrid: true,
-          gridcolor: c.grid,
-          zeroline: false
-        },
-        yaxis: {
-          showgrid: true,
-          gridcolor: c.grid,
-          zeroline: true,
-          zerolinecolor: c.grid,
-          automargin: true
-        },
+        xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false, automargin: true },
+        yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid, automargin: true },
         showlegend: true,
-        legend: { orientation: "h", x: 0, y: -0.2, xanchor: "left", yanchor: "top" }
+        legend: { orientation: "h", x: 0, y: -0.25, xanchor: "left", yanchor: "top" }
       };
     }
 
@@ -1228,7 +1251,6 @@
     // =============================
     function plotCumulative() {
       if (!window.Plotly) return;
-
       const idxs = getCurrentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
@@ -1240,12 +1262,10 @@
         const aw = vectorSubarrayByIdx(alpha, idxs);
         const awBps = toBpsArray(Array.from(aw));
 
-        // Cumulado en la ventana y normalizado para empezar en 0
+        // Cumulado y shift para arrancar en 0 en la ventana
         const cum = cumulativeSum(Float64Array.from(awBps));
         let base = 0;
-        for (let k = 0; k < cum.length; k++) {
-          if (Number.isFinite(cum[k])) { base = cum[k]; break; }
-        }
+        for (let k = 0; k < cum.length; k++) { if (Number.isFinite(cum[k])) { base = cum[k]; break; } }
         const yShift = cum.map(val => Number.isFinite(val) ? (val - base) : NaN);
 
         traces.push({
@@ -1260,7 +1280,7 @@
         });
       }
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.yaxis.title = "Alpha acumulado (bps)";
       layout.yaxis.ticksuffix = " bps";
 
@@ -1269,7 +1289,6 @@
 
     function plotDrawdown() {
       if (!window.Plotly) return;
-
       const idxs = getCurrentWindowIdxs();
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
@@ -1293,7 +1312,7 @@
         });
       }
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.yaxis.title = "Drawdown (bps)";
       layout.yaxis.ticksuffix = " bps";
 
@@ -1303,14 +1322,11 @@
     function computeIndexedSeries(asset, idxs) {
       const returns = state.returnsByAsset[asset];
       if (!returns || !idxs.length) return [];
-
       const out = new Array(idxs.length);
-      let index = 100;
-      out[0] = 100;
-
+      let index = 100; out[0] = 100;
       for (let j = 1; j < idxs.length; j++) {
         const r = returns[idxs[j]];
-        if (Number.isFinite(r)) index = index * (1 + r);
+        if (Number.isFinite(r)) index *= (1 + r);
         out[j] = index;
       }
       return out;
@@ -1319,7 +1335,6 @@
     function computeAccumulatedReturn(asset, idxs) {
       const returns = state.returnsByAsset[asset];
       if (!returns || !idxs.length) return NaN;
-
       let acc = 1;
       for (let j = 1; j < idxs.length; j++) {
         const r = returns[idxs[j]];
@@ -1330,7 +1345,6 @@
 
     function renderIndexedReturnsChart() {
       if (!window.Plotly) return;
-
       const idxs = getCurrentWindowIdxs();
       const allAssets = getOrderedReturnAssets();
       const visible = state.visibility.indexed || new Set(allAssets);
@@ -1341,23 +1355,18 @@
         return;
       }
 
-      const traces = visibleAssets.map((asset, i) => {
-        const series = computeIndexedSeries(asset, idxs);
-        const dailyReturns = idxs.map((ix, j) => j === 0 ? NaN : state.returnsByAsset[asset][ix]);
+      const traces = visibleAssets.map((asset, i) => ({
+        type: "scatter",
+        mode: "lines",
+        name: asset,
+        x: idxs.map(i => state.dates[i]),
+        y: computeIndexedSeries(asset, idxs),
+        line: { width: 2, color: palette(i) },
+        customdata: idxs.map((ix, j) => j === 0 ? NaN : state.returnsByAsset[asset][ix]),
+        hovertemplate: "%{x|%d-%m-%Y}<br>Retorno diario: %{customdata:.2%}<br>Índice: %{y:.2f}<extra>" + asset + "</extra>"
+      }));
 
-        return {
-          type: "scatter",
-          mode: "lines",
-          name: asset,
-          x: idxs.map(i => state.dates[i]),
-          y: series,
-          line: { width: 2, color: palette(i) },
-          customdata: dailyReturns,
-          hovertemplate: "%{x|%d-%m-%Y}<br>Retorno diario: %{customdata:.2%}<br>Índice: %{y:.2f}<extra>" + asset + "</extra>"
-        };
-      });
-
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.yaxis.title = "Índice (Base 100)";
       layout.xaxis.title = "Fecha";
 
@@ -1377,7 +1386,6 @@
       const plotDiv = document.getElementById("chartReturnBars");
 
       if (!visibleAssets.length || !idxs.length) {
-        // Altura mínima cuando no hay datos
         if (card) card.style.gridRow = "span 1";
         if (plotDiv) plotDiv.style.minHeight = "320px";
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
@@ -1397,7 +1405,7 @@
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
@@ -1407,15 +1415,15 @@
       layout.yaxis.categoryorder = "array";
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
-      layout.margin.l = 220; // más espacio para etiquetas largas
+      layout.margin.l = 220; // espacio para "Asia ex-Japón" completo
 
-      // === Altura dinámica en función de # de barras ===
-      const perBar = 26; // px por barra
-      const extra = 160; // encabezado, leyenda y paddings
+      // Altura dinámica según # de barras
+      const perBar = 26;
+      const extra = 160; // título + leyenda + paddings
       const desired = Math.max(320, Math.round(perBar * data.length + extra));
       if (plotDiv) plotDiv.style.minHeight = desired + "px";
       if (card) {
-        const baseRow = 430; // coincide con grid-auto-rows
+        const baseRow = 430;
         const span = Math.max(1, Math.ceil(desired / baseRow));
         card.style.gridRow = `span ${span}`;
       }
@@ -1429,10 +1437,7 @@
       const agg = {};
       for (const a of Object.keys(daily)) {
         let s = 0;
-        for (const i of idxs) {
-          const v = daily[a][i];
-          if (Number.isFinite(v)) s += v;
-        }
+        for (const i of idxs) { const v = daily[a][i]; if (Number.isFinite(v)) s += v; }
         agg[a] = s;
       }
       return agg;
@@ -1474,19 +1479,29 @@
         x,
         y,
         measure: measures,
-        text: y.map(vv => fmtNum(vv, 0)),
-        textposition: "outside",
+        // No texto externo para evitar estirar/cortar
         connector: { line: { color: getThemeColors().grid } },
         decreasing: { marker: { color: "#ef4444" } },
         increasing: { marker: { color: "#16a34a" } },
         totals: { marker: { color: "#2563eb" } },
-        hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
+        hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>",
+        cliponaxis: true
       };
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.showlegend = false;
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
+      layout.margin.b = 100; // más espacio abajo
+      layout.margin.t = 30;
+      layout.xaxis.tickangle = -20;
+      layout.xaxis.automargin = true;
+
+      // Mantener altura fija (evita “crecer” verticalmente)
+      const plotDiv = document.getElementById("chartWaterfall");
+      if (plotDiv) {
+        plotDiv.style.minHeight = "380px";
+      }
 
       Plotly.react("chartWaterfall", [trace], layout, { displayModeBar: false, responsive: true });
       document.getElementById("wfVector").textContent = `Vector: ${v}`;
@@ -1494,7 +1509,6 @@
 
     function plotDecomposition() {
       if (!window.Plotly) return;
-
       const idxs = getCurrentWindowIdxs();
       const sel = selectedVectorsList();
 
@@ -1518,7 +1532,7 @@
       const trSelRF = { type: "bar", name: "Selection RF", x, y: components.map(c => c.sRF), marker: { color: "#f59e0b" }, hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>" };
       const trFX = { type: "bar", name: "FX", x, y: components.map(c => c.sFX), marker: { color: "#a78bfa" }, hovertemplate: "FX: %{y:.0f} bps<extra></extra>" };
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.barmode = "stack";
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
@@ -1534,10 +1548,7 @@
       for (const i of idxs) {
         const d = state.dates[i];
         const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-        if (!keyToIdx.has(key)) {
-          keyToIdx.set(key, monthKeys.length);
-          monthKeys.push(key);
-        }
+        if (!keyToIdx.has(key)) { keyToIdx.set(key, monthKeys.length); monthKeys.push(key); }
       }
 
       const assetList = Object.keys(daily);
@@ -1581,20 +1592,14 @@
 
       const trace = {
         type: "heatmap",
-        x,
-        y,
-        z: zBps,
+        x, y, z: zBps,
         zmid: 0,
-        colorscale: [
-          [0.0, "#dc2626"],
-          [0.5, "#f3f4f6"],
-          [1.0, "#16a34a"]
-        ],
+        colorscale: [[0.0, "#dc2626"], [0.5, "#f3f4f6"], [1.0, "#16a34a"]],
         colorbar: { title: "bps" },
         hovertemplate: "Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.0f} bps<extra></extra>"
       };
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
@@ -1626,13 +1631,12 @@
 
       const trace = {
         type: "bar",
-        x,
-        y,
+        x, y,
         marker: { color: colors },
         hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
       };
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.xaxis.title = "Asset class";
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
@@ -1666,7 +1670,7 @@
         hovertemplate: "Alpha: %{x:.0f} bps<br>Frecuencia: %{y}<extra></extra>"
       };
 
-      const layout = baseLayout("");
+      const layout = baseLayout();
       layout.xaxis.title = "Alpha diario (bps)";
       layout.xaxis.ticksuffix = " bps";
       layout.yaxis.title = "Frecuencia";
@@ -1731,7 +1735,6 @@
       document.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-action]");
         if (!btn) return;
-
         const action = btn.dataset.action;
         const chart = btn.dataset.chart;
         const group = btn.dataset.group;
@@ -1745,139 +1748,171 @@
       });
     }
 
+    function updateStickyOffsets() {
+      const header = document.getElementById("appHeader");
+      if (!header) return;
+      const h = header.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--header-h", `${Math.ceil(h)}px`);
+    }
+
+    function openVectorModal() {
+      const modal = document.getElementById("vectorModal");
+      if (modal) modal.style.display = "flex";
+    }
+
+    function closeVectorModal() {
+      const modal = document.getElementById("vectorModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function renderVectorPickerList() {
+      const list = document.getElementById("vectorPickerList");
+      if (!list) return;
+      const selSet = new Set(state.selectedVectors);
+      list.innerHTML = state.vectorNames.map(v => {
+        const id = `vp_${escapeHtml(v).replace(/\W+/g, "_")}`;
+        const checked = selSet.has(v) ? "checked" : "";
+        return `
+          <label class="vp-item" for="${id}">
+            <input type="checkbox" id="${id}" value="${escapeHtml(v)}" ${checked} />
+            <span>${escapeHtml(v)}</span>
+          </label>
+        `;
+      }).join("");
+    }
+
+    function updateVectorButtonLabel() {
+      const btn = document.getElementById("openVectorPicker");
+      if (!btn) return;
+      const n = state.selectedVectors.length;
+      btn.textContent = `Vectores (${n})`;
+    }
+
     function initUI() {
-      const vMulti = document.getElementById("vectorMulti");
       const vFocus = document.getElementById("vectorFocus");
 
+      // Cargar lista de vectores en:
+      // - foco (select)
+      // - modal (checkboxes)
       state.vectorNames.forEach(v => {
-        const opt1 = document.createElement("option");
-        opt1.value = v;
-        opt1.textContent = v;
-        vMulti.appendChild(opt1);
-
         const opt2 = document.createElement("option");
         opt2.value = v;
         opt2.textContent = v;
         vFocus.appendChild(opt2);
       });
 
-      // === Selección múltiple por defecto: "Cual" y "Final" si existen (case-insensitive) ===
+      // Defaults: "Cual" y "Final" (case-insensitive)
       const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
       const defaults = [];
       if (lower.has("cual")) defaults.push(lower.get("cual"));
       if (lower.has("final")) defaults.push(lower.get("final"));
-      if (defaults.length === 0) {
-        // fallback: primeras 2-3 como antes
-        state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
-      } else {
-        state.selectedVectors = Array.from(new Set(defaults));
-      }
+      state.selectedVectors = defaults.length ? Array.from(new Set(defaults)) : state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
 
-      // === Vector foco por defecto: "final" (case-insensitive) o primero disponible ===
+      // Foco por defecto: "final" si existe
       state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
-
-      for (const opt of vMulti.options) opt.selected = state.selectedVectors.includes(opt.value);
       vFocus.value = state.focusVector || "";
 
+      // Fechas mín/max
       const dFrom = document.getElementById("dateFrom");
       const dTo = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
       const maxISO = state.isoDates[state.isoDates.length - 1];
-      dFrom.min = minISO;
-      dFrom.max = maxISO;
-      dTo.min = minISO;
-      dTo.max = maxISO;
-      dFrom.value = "";
-      dTo.value = "";
+      dFrom.min = minISO; dFrom.max = maxISO; dTo.min = minISO; dTo.max = maxISO;
+      dFrom.value = ""; dTo.value = "";
 
       document.getElementById("dateCount").textContent = state.isoDates.length;
       document.getElementById("assetCount").textContent = Object.keys(state.returnsByAsset).length;
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
       ensureVisibilityDefaults();
+      renderVectorPickerList();
+      updateVectorButtonLabel();
 
-      vMulti.addEventListener("change", () => {
-        const sel = Array.from(vMulti.selectedOptions).map(o => o.value);
-        state.selectedVectors = sel;
-        renderAll();
-      });
-
+      // Eventos vector foco
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
         renderAll();
       });
 
-      document.getElementById("selectAll").addEventListener("click", () => {
-        state.selectedVectors = [...state.vectorNames];
-        for (const opt of vMulti.options) opt.selected = true;
+      // Botón abrir modal
+      document.getElementById("openVectorPicker").addEventListener("click", () => {
+        renderVectorPickerList();
+        openVectorModal();
+      });
+
+      // Modal acciones
+      document.getElementById("vpSelectAll").addEventListener("click", () => {
+        const inputs = document.querySelectorAll("#vectorPickerList input[type='checkbox']");
+        inputs.forEach(i => (i.checked = true));
+      });
+      document.getElementById("vpSelectNone").addEventListener("click", () => {
+        const inputs = document.querySelectorAll("#vectorPickerList input[type='checkbox']");
+        inputs.forEach(i => (i.checked = false));
+      });
+      document.getElementById("vpCancel").addEventListener("click", () => closeVectorModal());
+      document.getElementById("vpApply").addEventListener("click", () => {
+        const inputs = document.querySelectorAll("#vectorPickerList input[type='checkbox']");
+        const sel = [];
+        inputs.forEach(i => { if (i.checked) sel.push(i.value); });
+        state.selectedVectors = sel;
+        updateVectorButtonLabel();
+        closeVectorModal();
         renderAll();
       });
 
-      document.getElementById("selectNone").addEventListener("click", () => {
-        state.selectedVectors = [];
-        for (const opt of vMulti.options) opt.selected = false;
-        renderAll();
-      });
-
+      // Ventanas rápidas
       document.getElementById("quickRanges").addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-range]");
-        if (!btn) return;
-
+        const btn = e.target.closest("button[data-range]"); if (!btn) return;
         const key = btn.getAttribute("data-range");
-        const idxs = idxWindowByKey(key);
-        if (!idxs.length) return;
+        const idxs = idxWindowByKey(key); if (!idxs.length) return;
 
         const df = state.dates[idxs[0]];
         const dt = state.dates[idxs[idxs.length - 1]];
-        state.dateFrom = df;
-        state.dateTo = dt;
-        state.windowKey = key; // guardar etiqueta de ventana rápida
-        dFrom.value = toISODate(df);
-        dTo.value = toISODate(dt);
+        state.dateFrom = df; state.dateTo = dt; state.windowKey = key;
+        dFrom.value = toISODate(df); dTo.value = toISODate(dt);
         renderAll();
       });
 
       document.getElementById("applyDates").addEventListener("click", () => {
-        const dFromStr = dFrom.value;
-        const dToStr = dTo.value;
+        const dFromStr = dFrom.value, dToStr = dTo.value;
         state.dateFrom = dFromStr ? new Date(dFromStr + "T00:00:00Z") : null;
         state.dateTo = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
-
         if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) {
-          alert("Fecha desde no puede ser mayor que fecha hasta.");
-          return;
+          alert("Fecha desde no puede ser mayor que fecha hasta."); return;
         }
         state.windowKey = "CUSTOM";
         renderAll();
       });
 
       document.getElementById("resetDates").addEventListener("click", () => {
-        state.dateFrom = null;
-        state.dateTo = null;
-        state.windowKey = "ALL";
-        dFrom.value = "";
-        dTo.value = "";
+        state.dateFrom = null; state.dateTo = null; state.windowKey = "ALL";
+        dFrom.value = ""; dTo.value = "";
         renderAll();
       });
 
+      // Tema
       document.getElementById("themeToggle").addEventListener("click", () => {
         state.theme = (state.theme === "light" ? "dark" : "light");
         document.documentElement.setAttribute("data-theme", state.theme);
-        document.getElementById("themeToggle").textContent = state.theme === "dark" ? "Modo claro" : "Modo oscuro";
         renderAll();
       });
 
-      window.addEventListener("resize", () => renderAll());
+      // Ajuste sticky offsets
+      updateStickyOffsets();
+      window.addEventListener("resize", () => {
+        updateStickyOffsets();
+        renderAll();
+      });
+
+      // Cerrar modal si clic fuera
+      document.getElementById("vectorModal").addEventListener("click", (e) => {
+        if (e.target.id === "vectorModal") closeVectorModal();
+      });
     }
 
-    window.addEventListener("error", (e) => {
-      appendDiag({ js_error: e.message || String(e) });
-    });
-
-    window.addEventListener("unhandledrejection", (e) => {
-      appendDiag({ promise_rejection: String(e.reason) });
-    });
+    window.addEventListener("error", (e) => appendDiag({ js_error: e.message || String(e) }));
+    window.addEventListener("unhandledrejection", (e) => appendDiag({ promise_rejection: String(e.reason) }));
 
     // =============================
     // INICIALIZACIÓN
