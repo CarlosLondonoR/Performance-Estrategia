@@ -211,10 +211,9 @@
     }
     .card.span-2 { grid-column: 1 / -1; }
 
-    /* Evitar cortes SOLO en Waterfall; ReturnBars se contiene dentro del card */
-    /* AJUSTE: antes aplicaba overflow: visible también a #cardReturnBars */
+    /* Evitar cortes SOLO en Waterfall; ReturnBars se mantiene contenido */
     #cardWaterfall { overflow: visible; }
-    #cardReturnBars { overflow: hidden; } /* AJUSTE */
+    #cardReturnBars { overflow: hidden; } /* clave para que no se salga del módulo */
 
     .card h3 {
       margin: 0;
@@ -229,7 +228,7 @@
 
     .plot {
       flex: 1;
-      min-height: 300px; /* un poco más bajo por compacidad general */
+      min-height: 300px; /* base compacta para gráficos estándar */
     }
 
     .small { font-size: 12px; color: var(--muted); }
@@ -480,7 +479,7 @@
         <div id="chartIndexed" class="plot"></div>
       </div>
 
-      <!-- 3) Barras de retorno — FULL (altura dinámica) -->
+      <!-- 3) Barras de retorno — FULL (altura dinámica y alineada al módulo) -->
       <div class="card span-2" id="cardReturnBars">
         <h3>
           <span>Retorno acumulado por asset class</span>
@@ -1158,7 +1157,7 @@
         const asset = trace?.name;
         if (!asset) return false;
         toggleChartAsset(chartKey, asset);
-        return false;
+        return false; // prevenimos el toggling nativo y usamos nuestro estado
       });
       gd.__legendToggleBound = true;
     }
@@ -1278,15 +1277,14 @@
       bindLegendToggle("chartIndexed", "indexed");
     }
 
-    /* ============================
-       3) BARRAS DE RETORNO — AJUSTES
-       - Colores por grupo (RV/RF/FX)
-       - Etiqueta de porcentaje al extremo de cada barra
-       - Altura dinámica con límite máximo
-       - Card contiene el gráfico (overflow: hidden)
-       ============================ */
+    /* =========================================================
+       3) BARRAS DE RETORNO — REFORMULADO PARA ALINEAR ALTURA
+       - Mantiene: leyenda, colores por grupo, datos y etiquetas.
+       - Nuevo: cálculo robusto de altura + sincronización card/grid.
+       ========================================================= */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
+
       const idxs = getCurrentWindowIdxs();
       const allAssets = getOrderedReturnAssets();
       const visible = state.visibility.returnBars || new Set(allAssets);
@@ -1297,41 +1295,61 @@
 
       if (!visibleAssets.length || !idxs.length) {
         if (card) card.style.gridRow = "span 1";
-        if (plotDiv) plotDiv.style.minHeight = "320px";
+        if (plotDiv) {
+          plotDiv.style.height = "360px";   // altura controlada
+          plotDiv.style.minHeight = "360px";
+        }
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         return;
       }
 
-      // Orden por retorno acumulado (desc)
-      const data = visibleAssets.map(asset => ({ 
-          asset, 
-          ret: computeAccumulatedReturn(asset, idxs),
-          group: state.groupsByAsset[asset] || "OTRO"
-        }))
-        .sort((a, b) => b.ret - a.ret);
+      // Datos ordenados por retorno acumulado (desc)
+      const data = visibleAssets.map(asset => ({
+        asset,
+        ret: computeAccumulatedReturn(asset, idxs),
+        group: state.groupsByAsset[asset] || "OTRO"
+      })).sort((a, b) => b.ret - a.ret);
 
-      // Colores por grupo (AJUSTE)
+      // Colores por grupo (mantener lo que ya funciona)
       const GROUP_COLOR = { RV: "#1d4ed8", RF: "#f59e0b", FX: "#8b5cf6", OTRO: "#64748b" };
 
       // Un trace por barra para conservar toggles por leyenda
-      const traces = data.map((d) => ({
+      const traces = data.map(d => ({
         type: "bar",
         orientation: "h",
         name: d.asset,
         x: [d.ret],
         y: [d.asset],
         marker: { color: GROUP_COLOR[d.group] || GROUP_COLOR.OTRO },
-        texttemplate: "%{x:.1%}",       // etiqueta en XX.X%
-        textposition: "outside",         // al extremo de la barra
+        texttemplate: "%{x:.1%}",      // etiqueta XX.X%
+        textposition: "outside",
+        cliponaxis: false,              // evita corte de etiqueta "outside"
+        textfont: { size: 11 },
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
+      // ---- Altura calculada y sincronizada con el contenedor ----
+      // Estos valores equilibran legibilidad y límite razonable.
+      const PER_BAR = 22;        // px por categoría
+      const EXTRA = 230;         // ejes + título + toolbar + leyenda + etiquetas
+      const MIN_H = 360;         // mínimo razonable
+      const MAX_H = 880;         // tope para no crecer indefinidamente
+      const desired = Math.round(PER_BAR * data.length + EXTRA);
+      const plotHeight = Math.max(MIN_H, Math.min(MAX_H, desired));
+
+      // Aplicar alto fijo al div del gráfico (no solo min-height)
+      plotDiv.style.height = plotHeight + "px";
+      plotDiv.style.minHeight = plotHeight + "px";
+
+      // Layout base + ajustes para labels outside y leyenda inferior
       const layout = baseLayout("");
+      layout.height = plotHeight;      // fija altura del SVG de Plotly
+      layout.autosize = false;
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
 
-      // Rango simétrico alrededor de cero (para dar espacio a etiquetas "outside")
+      // Rango simétrico alrededor de 0 con reserva para etiquetas fuera
       const maxAbs = Math.max(1e-9, ...data.map(d => Math.abs(d.ret) || 0));
       layout.xaxis.range = [-maxAbs * 1.15, maxAbs * 1.15];
 
@@ -1340,27 +1358,24 @@
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
 
-      // Márgenes: más espacio a la izquierda para nombres largos y a la derecha para etiquetas "outside"
+      // Márgenes para nombres y etiquetas "outside"
       layout.margin.l = 220;
-      layout.margin.r = 120;           // AJUSTE: margen derecho para texto "outside"
-      layout.bargap = 0.45;            // barras delgadas (más espacio entre categorías)
-
-      // Altura dinámica con límite (AJUSTE)
-      const perBar = 20;               // px por barra
-      const extra = 220;               // espacio fijo (título+toolbars+leyenda+labels)
-      const baseMin = 360;             // mínimo razonable
-      const MAX_H = 900;               // tope para no crecer indefinidamente
-      const desired = Math.max(baseMin, Math.round(perBar * data.length + extra));
-      const finalH = Math.min(desired, MAX_H);
-
-      if (plotDiv) plotDiv.style.minHeight = finalH + "px";
-      if (card) {
-        const baseRow = 430; // coincide con grid-auto-rows
-        const span = Math.max(1, Math.ceil(finalH / baseRow));
-        card.style.gridRow = `span ${span}`;
-      }
+      layout.margin.r = 130;   // margen derecho generoso para outside
+      layout.bargap = 0.42;
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
+
+      // Sincronizar la altura del card con el contenido real (grid-auto-rows = 430)
+      // Usamos scrollHeight luego de que Plotly haya sido renderizado.
+      requestAnimationFrame(() => {
+        if (!card) return;
+        const baseRow = 430;
+        // El card incluye: título + toolbar + padding + plot (alto ya fijado)
+        const total = card.scrollHeight;
+        const span = Math.max(1, Math.ceil(total / baseRow));
+        card.style.gridRow = `span ${span}`;
+      });
+
       bindLegendToggle("chartReturnBars", "returnBars");
     }
 
@@ -1653,8 +1668,8 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();  // ReturnBars ajustado
-      plotWaterfall();          // Waterfall ajustado
+      renderReturnBarsChart();  // módulo reformulado
+      plotWaterfall();
       plotDecomposition();
       plotDrawdown();
       plotHeatmap();
