@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  <script src="./plotly.min.js"></script>
+  ./plotly.min.js</script>
 
   <style>
     :root {
@@ -435,11 +435,11 @@
         <div class="chart-toolbar">
           <div class="btn-group">
             <!-- botones de grupo reales están enlazados por data-attrs en el JS original -->
-            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="ALL">Todos</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="ACTIVE">Vigentes</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RV">Solo RV</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="RF">Solo RF</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="indexed" data-group="FX">Solo FX</button>
+            groupTodos</button>
+            groupVigentes</button>
+            groupSolo RV</button>
+            groupSolo RF</button>
+            groupSolo FX</button>
           </div>
           <div class="chart-note">La leyenda no afecta el cálculo de filtros. Usa “Todos” para restaurar todas las series.</div>
         </div>
@@ -455,11 +455,11 @@
         </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
-            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="ALL">Todos</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="ACTIVE">Vigentes</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RV">Solo RV</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="RF">Solo RF</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="returnBars" data-group="FX">Solo FX</button>
+            groupTodos</button>
+            groupVigentes</button>
+            groupSolo RV</button>
+            groupSolo RF</button>
+            groupSolo FX</button>
           </div>
           <div class="chart-note">Usa “Todos” para restaurar todas.</div>
         </div>
@@ -476,11 +476,11 @@
         </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
-            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ALL">Todos</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="ACTIVE">Vigentes</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RV">Solo RV</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="RF">Solo RF</button>
-            <button class="btn ghost small" type="button" data-action="group" data-chart="waterfall" data-group="FX">Solo FX</button>
+            groupTodos</button>
+            groupVigentes</button>
+            groupSolo RV</button>
+            groupSolo RF</button>
+            groupSolo FX</button>
           </div>
           <div class="chart-note">Filtra por grupo o “Vigentes”.</div>
         </div>
@@ -626,7 +626,7 @@
     const fmtNum = (x,d=6)=> Number.isFinite(x)? x.toFixed(d):"—";
 
     function parseCSV(text, delimiter = ";") {
-      const cleaned = text.replace(/^\uFEFF/, "");
+      const cleaned = text.replace/^\uFEFF/, "";
       const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length > 0);
       if (!lines.length) return { headers: [], rows: [] };
 
@@ -1551,6 +1551,41 @@
       Plotly.react("chartBars", [trace], layout, { displayModeBar: false, responsive: true });
     }
 
+    /* ======== RESTAURADO: Histograma de alpha diario (plotHist) ======== */
+    function plotHist() {
+      if (!window.Plotly) return;
+      const v = state.focusVector;
+      if (!v || !state.perVector[v]) {
+        Plotly.react("chartHist", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const idxs = getCurrentWindowIdxs();
+      const aw = vectorSubarrayByIdx(state.perVector[v].alpha, idxs);
+      const arr = Array.from(aw).filter(x => Number.isFinite(x)).map(toBps);
+
+      if (!arr.length) {
+        Plotly.react("chartHist", [], emptyLayout("No hay datos para mostrar"), { displayModeBar: false, responsive: true });
+        return;
+      }
+
+      const trace = {
+        type: "histogram",
+        x: arr,
+        nbinsx: Math.min(50, Math.max(10, Math.floor(Math.sqrt(arr.length)))),
+        marker: { color: "#60a5fa" },
+        hovertemplate: "Alpha: %{x:.0f} bps<br>Frecuencia: %{y}<extra></extra>"
+      };
+
+      const layout = baseLayout("");
+      layout.xaxis.title = "Alpha diario (bps)";
+      layout.xaxis.ticksuffix = " bps";
+      layout.yaxis.title = "Frecuencia";
+
+      Plotly.react("chartHist", [trace], layout, { displayModeBar: false, responsive: true });
+    }
+    /* =================== FIN plotHist =================== */
+
     function updateMetrics() {
       const v = state.focusVector;
       if (!v || !state.perVector[v]) {
@@ -1597,7 +1632,7 @@
       plotDrawdown();
       plotHeatmap();
       plotContributionBars();
-      plotHist();
+      plotHist();                       // <--- ya definida nuevamente
     }
 
     // =============================
