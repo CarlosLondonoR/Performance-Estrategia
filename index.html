@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  <!-- FIX 1: Carga correcta de Plotly -->
+  <!-- Carga de Plotly -->
   <script src="./plotly.min.js"></script>
 
   <style>
@@ -81,6 +81,7 @@
       line-height: 1.2;
     }
 
+    /* Botón icon-only (tema) */
     .icon-btn {
       height: 34px;
       width: 34px;
@@ -106,6 +107,7 @@
       box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
     }
 
+    /* ===== Controles (sticky) ===== */
     .controls {
       position: sticky;
       top: var(--ctrl-top);
@@ -132,7 +134,7 @@
     button { cursor: pointer; }
 
     .btn { background: var(--accent); color: white; border: none; }
-    .btn.ghost, .btn.ghost:where(button) { background: transparent; color: var(--text); border: 1px solid var(--grid); }
+    .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--grid); }
     .btn.small { padding: 4px 7px; font-size: 12px; border-radius: 9px; }
 
     .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -160,6 +162,7 @@
     .metric .kpi { font-weight: 700; font-size: 18px; }
     .metric .desc { color: var(--muted); font-size: 12px; }
 
+    /* ===== Grid de tarjetas ===== */
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -181,6 +184,7 @@
     }
     .card.span-2 { grid-column: 1 / -1; }
 
+    /* Mantener Waterfall sin cortes de conector; ReturnBars contenido */
     #cardWaterfall { overflow: visible; }
     #cardReturnBars { overflow: hidden; }
 
@@ -207,10 +211,11 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 4px;
-      min-height: 20px; /* evitar colapsos si está vacía */
+      min-height: 20px;
     }
     .chart-note { font-size: 12px; color: var(--muted); line-height: 1.3; max-width: 100%; }
 
+    /* ===== Leyenda personalizada (chips) ===== */
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
@@ -232,9 +237,9 @@
     .legend-chip.active { background: var(--chip-active); }
     .legend-chip.off   { opacity: 0.45; text-decoration: line-through; }
 
-    /* POPUP anclado al botón “Elegir vectores…” */
+    /* ===== POPUP anclado al botón “Elegir vectores…” ===== */
     .popover {
-      position: fixed;
+      position: fixed; /* se posiciona con coordenadas de viewport */
       z-index: 300;
       background: var(--panel);
       color: var(--text);
@@ -243,7 +248,7 @@
       box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 2px 0 var(--grid) inset;
       width: min(520px, 92vw);
       max-height: 62vh;
-      display: none;
+      display: none;            /* visible solo cuando se abre */
       overflow: hidden;
     }
     .popover.open { display: block; }
@@ -260,7 +265,7 @@
     .popover .body {
       padding: 10px 12px;
       overflow: auto;
-      max-height: calc(62vh - 92px);
+      max-height: calc(62vh - 92px); /* header + footer aprox. */
     }
     .popover .grid {
       display: grid;
@@ -277,7 +282,9 @@
       background: var(--panel);
       border-radius: 0 0 12px 12px;
     }
-    .popover .checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .popover .checkbox {
+      display: flex; align-items: center; gap: 8px; font-size: 13px;
+    }
     .popover .search {
       width: 100%;
       padding: 6px 8px;
@@ -308,11 +315,13 @@
       <div class="row">
         <!-- (Eliminados “Datos cargados” y “Diagnóstico”) -->
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
+          <!-- Ícono Sol -->
           <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="4"></circle>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
           </svg>
+          <!-- Ícono Luna -->
           <svg id="iconMoon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -323,6 +332,7 @@
 
     <section class="controls">
       <div class="controls-grid">
+        <!-- Botón que abre POPUP para selección múltiple -->
         <div class="control">
           <label>Vectores (múltiple)</label>
           <div class="row">
@@ -361,7 +371,6 @@
           </div>
           <div class="row">
             <button class="btn" id="applyDates" type="button">Aplicar</button>
-            <!-- FIX menor: clase limpia -->
             <button class="btn ghost" id="resetDates" type="button">Reset</button>
           </div>
           <span class="small" id="dateSummary"></span>
@@ -408,6 +417,7 @@
     </section>
 
     <section class="charts">
+      <!-- 1) Alpha acumulado — FULL -->
       <div class="card span-2" id="cardCumulative">
         <h3>
           <span>Alpha acumulado por vector</span>
@@ -417,27 +427,31 @@
         <div id="chartCumulative" class="plot"></div>
       </div>
 
+      <!-- 2) Indexados — FULL -->
       <div class="card span-2" id="cardIndexed">
         <h3>
           <span>Evolución de asset classes indexada a base 100</span>
           <span class="small" id="sfxIndexed"></span>
           <span class="small">Haz clic en la leyenda para ocultar/mostrar</span>
         </h3>
-        <!-- toolbar vacía (sin HTML corrupto) -->
         <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note"></div></div>
         <div id="chartIndexed" class="plot"></div>
       </div>
 
+      <!-- 3) Barras de retorno — FULL -->
       <div class="card span-2" id="cardReturnBars">
         <h3>
           <span>Retorno acumulado por asset class</span>
           <span class="small" id="sfxReturnBars"></span>
           <span class="small">Barras horizontales ordenadas de mayor a menor</span>
         </h3>
-        <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note">Usa la leyenda para mostrar/ocultar.</div></div>
+        <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note">Usa la leyenda (chips) para mostrar/ocultar.</div></div>
         <div id="chartReturnBars" class="plot"></div>
+        <!-- NUEVO: leyenda de chips unificada -->
+        <div id="rbLegend" class="chart-legend" aria-label="Leyenda Retorno acumulado (clic para ocultar/mostrar)"></div>
       </div>
 
+      <!-- 4) Waterfall — FULL (con leyenda inferior tipo chips) -->
       <div class="card span-2" id="cardWaterfall">
         <h3>
           <span>Waterfall — Contribución por asset class</span>
@@ -449,6 +463,7 @@
         <div id="wfLegend" class="chart-legend" aria-label="Leyenda Waterfall (clic para ocultar/mostrar)"></div>
       </div>
 
+      <!-- 5) Descomposición — FULL -->
       <div class="card span-2" id="cardDecomposition">
         <h3>
           <span>Descomposición: Allocation vs Selection (RV/RF) vs FX</span>
@@ -457,6 +472,7 @@
         <div id="chartDecomposition" class="plot"></div>
       </div>
 
+      <!-- Restantes en parejas -->
       <div class="card" id="cardDrawdown">
         <h3>
           <span>Curva de Drawdown</span>
@@ -492,7 +508,7 @@
     </section>
   </div>
 
-  <!-- POPUP de vectores -->
+  <!-- ===== POPUP ligero anclado al botón (reemplaza al modal previo) ===== -->
   <div id="vectorPopover" class="popover" role="dialog" aria-modal="false" aria-labelledby="vpTitle">
     <header>
       <strong id="vpTitle">Selecciona vectores</strong>
@@ -503,7 +519,7 @@
     </header>
     <div class="body">
       <input id="vpSearch" class="search" type="search" placeholder="Filtrar por nombre…" />
-      <div id="vpList" class="grid"></div>
+      <div id="vpList" class="grid"><!-- checkboxes dinámicos --></div>
     </div>
     <div class="footer">
       <span class="small">Seleccionados: <strong id="vpCount">0</strong></span>
@@ -515,9 +531,9 @@
   </div>
 
   <script>
-    /* =============================
-       UTILIDADES GENERALES
-       ============================= */
+    // =============================
+    // UTILIDADES GENERALES
+    // =============================
     const ANN_FACTOR = Math.sqrt(252);
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot", "usdjpy_spot", "Duracion"]);
 
@@ -584,7 +600,6 @@
     const fmtNum = (x,d=6)=> Number.isFinite(x)? x.toFixed(d):"—";
 
     function parseCSV(text, delimiter = ";") {
-      /* FIX 2: sintaxis correcta del replace BOM */
       const cleaned = text.replace(/^\uFEFF/, "");
       const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length > 0);
       if (!lines.length) return { headers: [], rows: [] };
@@ -617,10 +632,12 @@
       return { headers, rows };
     }
 
+    // No-op si el span ya no existe (quitado del header)
     function setStatus(text) {
       const el = document.getElementById("loadStatus");
       if (el) el.textContent = text;
     }
+
     function appendDiag(msgObj) {
       const pre = document.getElementById("diagBox");
       const line = typeof msgObj === "string" ? msgObj : JSON.stringify(msgObj, null, 2);
@@ -654,9 +671,9 @@
       };
     }
 
-    /* =============================
-       ESTADO
-       ============================= */
+    // =============================
+    // ESTADO
+    // =============================
     const state = {
       theme: "light",
       dates: [],
@@ -696,6 +713,7 @@
     }
     function setChartGroupVisibility(chartKey, group) {
       const filterActive = (arr) => arr.filter(a => !INACTIVE_FOR_ACTIVE_VIEW.has(a));
+
       if (chartKey === "waterfall") {
         const all = getFocusVectorAssetsOrdered();
         if (group === "ALL") state.visibility.waterfall = new Set(all);
@@ -716,9 +734,9 @@
       renderAll();
     }
 
-    /* =============================
-       CARGA Y PARSING
-       ============================= */
+    // =============================
+    // CARGA Y PARSING
+    // =============================
     function fetchWithTimeout(url, ms = 30000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
@@ -820,9 +838,9 @@
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
     }
 
-    /* =============================
-       PRE-CÁLCULOS
-       ============================= */
+    // =============================
+    // PRE-CÁLCULOS
+    // =============================
     function precomputeAll() {
       const N = state.isoDates.length;
       const perVector = {};
@@ -902,9 +920,9 @@
       state.perVector = perVector;
     }
 
-    /* =============================
-       MÉTRICAS / RANGOS
-       ============================= */
+    // =============================
+    // MÉTRICAS / RANGOS
+    // =============================
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
       for (let i = 0; i < dates.length; i++) {
@@ -1041,9 +1059,9 @@
       set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist");
     }
 
-    /* =============================
-       PLOTLY BASE
-       ============================= */
+    // =============================
+    // PLOTLY BASE
+    // =============================
     function baseLayout(title = "") {
       const c = getThemeColors();
       return {
@@ -1051,7 +1069,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 },
+        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
         hovermode: "x unified",
         xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
         yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid, automargin: true },
@@ -1072,14 +1090,14 @@
         const asset = trace?.name;
         if (!asset) return false;
         toggleChartAsset(chartKey, asset);
-        return false;
+        return false; // prevenimos el toggle nativo, usamos nuestro estado
       });
       gd.__legendToggleBound = true;
     }
 
-    /* =============================
-       GRÁFICAS
-       ============================= */
+    // =============================
+    // GRÁFICAS
+    // =============================
     function plotCumulative() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
@@ -1192,8 +1210,35 @@
       bindLegendToggle("chartIndexed", "indexed");
     }
 
+    /* ===== Leyenda (chips) para Retorno acumulado — igual a Waterfall ===== */
+    function renderReturnBarsLegend(allAssets, visibleSet) {
+      const cont = document.getElementById("rbLegend");
+      if (!cont) return;
+      cont.innerHTML = "";
+      const frag = document.createDocumentFragment();
+      allAssets.forEach(a => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "legend-chip " + (visibleSet.has(a) ? "active" : "off");
+        chip.textContent = a;
+        chip.setAttribute("data-asset", a);
+        frag.appendChild(chip);
+      });
+      cont.appendChild(frag);
+
+      // Toggle de visibilidad con estado centralizado
+      cont.onclick = (e) => {
+        const btn = e.target.closest(".legend-chip");
+        if (!btn) return;
+        const asset = btn.getAttribute("data-asset");
+        toggleChartAsset("returnBars", asset); // re-renderAll(); legend se reconstruye
+      };
+    }
+
+    /* ===== 3) Barras de retorno — con leyenda inferior (chips) ===== */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
+
       const idxs = getCurrentWindowIdxs();
       const allAssets = getOrderedReturnAssets();
       const visible = state.visibility.returnBars || new Set(allAssets);
@@ -1201,13 +1246,19 @@
 
       const plotDiv = document.getElementById("chartReturnBars");
 
+      // Siempre renderiza la leyenda de chips para mantener formato
+      renderReturnBarsLegend(allAssets, visible);
+
       if (!visibleAssets.length || !idxs.length) {
-        plotDiv.style.height = "360px";
-        plotDiv.style.minHeight = "360px";
+        if (plotDiv) {
+          plotDiv.style.height = "360px";
+          plotDiv.style.minHeight = "360px";
+        }
         Plotly.react("chartReturnBars", [], emptyLayout("No hay activos visibles para mostrar"), { displayModeBar: false, responsive: true });
         return;
       }
 
+      // Datos ordenados por retorno acumulado
       const data = visibleAssets.map(asset => ({
         asset,
         ret: computeAccumulatedReturn(asset, idxs),
@@ -1216,7 +1267,7 @@
 
       const GROUP_COLOR = { RV: "#1d4ed8", RF: "#f59e0b", FX: "#8b5cf6", OTRO: "#64748b" };
 
-      const traces = data.map((d) => ({
+      const traces = data.map(d => ({
         type: "bar",
         orientation: "h",
         name: d.asset,
@@ -1230,6 +1281,7 @@
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
+      // Altura del gráfico (consistente)
       const PER_BAR = 22;
       const PLOT_MIN = 360;
       const PLOT_MAX = 820;
@@ -1242,6 +1294,7 @@
       const layout = baseLayout("");
       layout.autosize = false;
       layout.height = plotHeight;
+      layout.showlegend = false;                // usamos chips, no leyenda nativa
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
@@ -1257,11 +1310,11 @@
       layout.margin.l = 220;
       layout.margin.r = 150;
       layout.margin.t = 30;
-      layout.margin.b = 100;
+      layout.margin.b = 60;                     // menos espacio porque no hay leyenda de Plotly
       layout.bargap = 0.42;
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
-      bindLegendToggle("chartReturnBars", "returnBars");
+      // (No usamos bindLegendToggle aquí; los chips manejan la visibilidad)
     }
 
     function aggregateContribByAsset(vectorName, idxs) {
@@ -1275,6 +1328,7 @@
       return agg;
     }
 
+    /* ========== Waterfall — leyenda (chips) ========== */
     function renderWaterfallLegend(allAssets, visibleSet) {
       const cont = document.getElementById("wfLegend");
       cont.innerHTML = "";
@@ -1293,7 +1347,7 @@
         const btn = e.target.closest(".legend-chip");
         if (!btn) return;
         const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("waterfall", asset);
+        toggleChartAsset("waterfall", asset); // re-renderAll(); legend se reconstruye
       };
     }
 
@@ -1317,6 +1371,7 @@
       const visible = state.visibility.waterfall || new Set(allFocusAssets);
       const orderAssets = allFocusAssets.filter(a => visible.has(a));
 
+      // Construir leyenda inferior (chips)
       renderWaterfallLegend(allFocusAssets, visible);
 
       if (!orderAssets.length || !idxs.length) {
@@ -1348,7 +1403,7 @@
       };
 
       const layout = baseLayout("");
-      layout.showlegend = false;
+      layout.showlegend = false; // usamos leyenda personalizada
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
       layout.margin.t = 30;
@@ -1356,6 +1411,7 @@
       layout.margin.l = 60;
       layout.margin.r = 20;
 
+      // Altura moderada
       const nBars = x.length;
       const base = 340;
       const step = 18;
@@ -1480,7 +1536,7 @@
 
       const x = orderedAssets;
       const y = orderedAssets.map(a => toBps(agg[a]));
-      const colors = y.map(val => val >= 0 ? "#16a34a" : "#ef4444");
+      const colors = y.map(val => val >= 0 ? "#16a34a" : "#ef4444";
 
       const trace = {
         type: "bar", x, y, marker: { color: colors },
@@ -1495,7 +1551,7 @@
       Plotly.react("chartBars", [trace], layout, { displayModeBar: false, responsive: true });
     }
 
-    /* === Histograma de alpha diario === */
+    /* ======== Histograma de alpha diario ======== */
     function plotHist() {
       if (!window.Plotly) return;
       const v = state.focusVector;
@@ -1569,8 +1625,8 @@
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();
-      plotWaterfall();
+      renderReturnBarsChart();   // ahora con chips
+      plotWaterfall();           // con chips
       plotDecomposition();
       plotDrawdown();
       plotHeatmap();
@@ -1578,9 +1634,9 @@
       plotHist();
     }
 
-    /* =============================
-       UI / EVENTOS
-       ============================= */
+    // =============================
+    // UI / EVENTOS
+    // =============================
     function bindUIDelegates() {
       document.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-action]");
@@ -1601,20 +1657,23 @@
       chip.textContent = n === 0 ? "0 seleccionados" : (n === 1 ? `${state.selectedVectors[0]}` : `${n} seleccionados`);
     }
 
-    /* POPUP de vectores (anclado) */
+    /* ======= POPUP de vectores (anclado) ======= */
     function positionPopover(pop, anchorBtn) {
       const btnRect = anchorBtn.getBoundingClientRect();
       const vw = document.documentElement.clientWidth;
       const vh = document.documentElement.clientHeight;
 
-      const popRect = pop.getBoundingClientRect();
+      const popRect = pop.getBoundingClientRect(); // tras abrir en display:block
 
+      // Preferir debajo del botón, alineado a la izquierda; ajustar si se sale
       let top = btnRect.bottom + 8;
       let left = btnRect.left;
 
+      // Si no cabe hacia abajo, abrir hacia arriba
       if (top + popRect.height > vh - 8) {
         top = Math.max(8, btnRect.top - 8 - popRect.height);
       }
+      // Si se sale por la derecha, ajustar
       if (left + popRect.width > vw - 8) {
         left = Math.max(8, vw - 8 - popRect.width);
       }
@@ -1630,6 +1689,7 @@
       const search = document.getElementById("vpSearch");
       const btn = document.getElementById("openVectorModal");
 
+      // Construir lista / refrescar
       const buildList = (filterText = "") => {
         list.innerHTML = "";
         const frag = document.createDocumentFragment();
@@ -1660,9 +1720,11 @@
       pop.classList.add("open");
       btn.setAttribute("aria-expanded", "true");
 
-      pop.style.display = "block";
+      // Posicionar respecto al botón (usar display:block para medir)
+      pop.style.display = "block"; // temporal para medir
       positionPopover(pop, btn);
 
+      // Eventos internos
       list.onchange = refreshCount;
       search.oninput = (e) => buildList(e.target.value || "");
 
@@ -1683,8 +1745,11 @@
         closeVectorPopover();
       };
 
+      // Cerrar al hacer clic fuera
       window.addEventListener("mousedown", outsideClickHandler, { capture: true });
+      // Cerrar con Escape
       window.addEventListener("keydown", escHandler);
+      // Reposicionar en scroll/resize
       window.addEventListener("scroll", repositionHandler, { passive: true });
       window.addEventListener("resize", repositionHandler);
 
@@ -1699,10 +1764,12 @@
         if (pop.classList.contains("open")) positionPopover(pop, btn);
       }
 
+      // Guardar handlers para quitarlos al cerrar (en propiedades del nodo)
       pop._outsideClickHandler = outsideClickHandler;
       pop._escHandler = escHandler;
       pop._repositionHandler = repositionHandler;
 
+      // Enfocar buscador para UX
       setTimeout(() => search.focus(), 0);
     }
 
@@ -1713,6 +1780,7 @@
       pop.style.display = "none";
       btn.setAttribute("aria-expanded", "false");
 
+      // Limpieza de listeners
       if (pop._outsideClickHandler) {
         window.removeEventListener("mousedown", pop._outsideClickHandler, { capture: true });
         pop._outsideClickHandler = null;
@@ -1727,16 +1795,19 @@
         pop._repositionHandler = null;
       }
     }
+    /* ======= FIN POPUP ======= */
 
     function initUI() {
       const vFocus = document.getElementById("vectorFocus");
 
+      // Poblado de opciones de foco
       state.vectorNames.forEach(v => {
         const opt2 = document.createElement("option");
         opt2.value = v; opt2.textContent = v;
         vFocus.appendChild(opt2);
       });
 
+      // Defaults: intentar "cual" y "final"
       const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
       const defaults = [];
       if (lower.has("cual"))  defaults.push(lower.get("cual"));
@@ -1744,9 +1815,11 @@
       if (defaults.length === 0) state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       else state.selectedVectors = Array.from(new Set(defaults));
 
+      // Vector foco por defecto
       state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
       vFocus.value = state.focusVector || "";
 
+      // Fechas
       const dFrom = document.getElementById("dateFrom");
       const dTo   = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
@@ -1762,13 +1835,15 @@
       ensureVisibilityDefaults();
       updateVectorSummaryChip();
 
+      // Listeners
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
         renderAll();
       });
 
-      document.getElementById("openVectorModal").addEventListener("click", () => {
+      // POPUP anclado
+      document.getElementById("openVectorModal").addEventListener("click", (e) => {
         const pop = document.getElementById("vectorPopover");
         if (pop.classList.contains("open")) closeVectorPopover(); else openVectorPopover();
       });
@@ -1780,14 +1855,14 @@
         const df = state.dates[idxs[0]]; const dt = state.dates[idxs[idxs.length - 1]];
         state.dateFrom = df; state.dateTo = dt; state.windowKey = key;
         document.getElementById("dateFrom").value = toISODate(df);
-        document.getElementById("dateTo").value = toISODate(dt);
+        document.getElementById("dateTo").value   = toISODate(dt);
         renderAll();
       });
 
       document.getElementById("applyDates").addEventListener("click", () => {
         const dFromStr = dFrom.value; const dToStr = dTo.value;
         state.dateFrom = dFromStr ? new Date(dFromStr + "T00:00:00Z") : null;
-        state.dateTo = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
+        state.dateTo   = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
         if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) { alert("Fecha desde no puede ser mayor que fecha hasta."); return; }
         state.windowKey = "CUSTOM";
         renderAll();
@@ -1799,6 +1874,7 @@
         renderAll();
       });
 
+      // Tema: íconos sol/luna
       const iconSun  = document.getElementById("iconSun");
       const iconMoon = document.getElementById("iconMoon");
       const updateThemeIcon = () => {
@@ -1819,6 +1895,9 @@
     window.addEventListener("error", (e) => { appendDiag({ js_error: e.message || String(e) }); });
     window.addEventListener("unhandledrejection", (e) => { appendDiag({ promise_rejection: String(e.reason) }); });
 
+    // =============================
+    // INICIALIZACIÓN
+    // =============================
     (async function main() {
       try {
         bindUIDelegates();
@@ -1828,7 +1907,7 @@
         precomputeAll();
         initUI();
         renderAll();
-        setStatus("");
+        setStatus(""); // sin texto visible en header
       } catch (err) {
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
