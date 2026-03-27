@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  ./plotly.min.js</script>
+  <!-- FIX 1: Carga correcta de Plotly -->
+  <script src="./plotly.min.js"></script>
 
   <style>
     :root {
@@ -80,7 +81,6 @@
       line-height: 1.2;
     }
 
-    /* Botón icon-only (tema) */
     .icon-btn {
       height: 34px;
       width: 34px;
@@ -106,7 +106,6 @@
       box-shadow: 0 1px 0 var(--grid) inset, 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    /* ===== Controles (sticky) ===== */
     .controls {
       position: sticky;
       top: var(--ctrl-top);
@@ -133,7 +132,7 @@
     button { cursor: pointer; }
 
     .btn { background: var(--accent); color: white; border: none; }
-    .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--grid); }
+    .btn.ghost, .btn.ghost:where(button) { background: transparent; color: var(--text); border: 1px solid var(--grid); }
     .btn.small { padding: 4px 7px; font-size: 12px; border-radius: 9px; }
 
     .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -161,7 +160,6 @@
     .metric .kpi { font-weight: 700; font-size: 18px; }
     .metric .desc { color: var(--muted); font-size: 12px; }
 
-    /* ===== Grid de tarjetas ===== */
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -183,7 +181,6 @@
     }
     .card.span-2 { grid-column: 1 / -1; }
 
-    /* Evitar cortes SOLO en Waterfall; ReturnBars contenido */
     #cardWaterfall { overflow: visible; }
     #cardReturnBars { overflow: hidden; }
 
@@ -210,10 +207,10 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 4px;
+      min-height: 20px; /* evitar colapsos si está vacía */
     }
     .chart-note { font-size: 12px; color: var(--muted); line-height: 1.3; max-width: 100%; }
 
-    /* ===== Leyenda personalizada (chips) para Waterfall ===== */
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
@@ -235,9 +232,9 @@
     .legend-chip.active { background: var(--chip-active); }
     .legend-chip.off   { opacity: 0.45; text-decoration: line-through; }
 
-    /* ===== POPUP anclado al botón “Elegir vectores…” ===== */
+    /* POPUP anclado al botón “Elegir vectores…” */
     .popover {
-      position: fixed; /* se posiciona con coordenadas de viewport */
+      position: fixed;
       z-index: 300;
       background: var(--panel);
       color: var(--text);
@@ -246,7 +243,7 @@
       box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 2px 0 var(--grid) inset;
       width: min(520px, 92vw);
       max-height: 62vh;
-      display: none;            /* visible solo cuando se abre */
+      display: none;
       overflow: hidden;
     }
     .popover.open { display: block; }
@@ -263,7 +260,7 @@
     .popover .body {
       padding: 10px 12px;
       overflow: auto;
-      max-height: calc(62vh - 92px); /* header + footer aprox. */
+      max-height: calc(62vh - 92px);
     }
     .popover .grid {
       display: grid;
@@ -280,9 +277,7 @@
       background: var(--panel);
       border-radius: 0 0 12px 12px;
     }
-    .popover .checkbox {
-      display: flex; align-items: center; gap: 8px; font-size: 13px;
-    }
+    .popover .checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .popover .search {
       width: 100%;
       padding: 6px 8px;
@@ -313,13 +308,11 @@
       <div class="row">
         <!-- (Eliminados “Datos cargados” y “Diagnóstico”) -->
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
-          <!-- Ícono Sol -->
           <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="4"></circle>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
           </svg>
-          <!-- Ícono Luna -->
           <svg id="iconMoon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -330,7 +323,6 @@
 
     <section class="controls">
       <div class="controls-grid">
-        <!-- Botón que abre POPUP para selección múltiple -->
         <div class="control">
           <label>Vectores (múltiple)</label>
           <div class="row">
@@ -369,7 +361,8 @@
           </div>
           <div class="row">
             <button class="btn" id="applyDates" type="button">Aplicar</button>
-            <button class="btn.ghost btn ghost" id="resetDates" type="button">Reset</button>
+            <!-- FIX menor: clase limpia -->
+            <button class="btn ghost" id="resetDates" type="button">Reset</button>
           </div>
           <span class="small" id="dateSummary"></span>
         </div>
@@ -415,7 +408,6 @@
     </section>
 
     <section class="charts">
-      <!-- 1) Alpha acumulado — FULL -->
       <div class="card span-2" id="cardCumulative">
         <h3>
           <span>Alpha acumulado por vector</span>
@@ -425,71 +417,38 @@
         <div id="chartCumulative" class="plot"></div>
       </div>
 
-      <!-- 2) Indexados — FULL -->
       <div class="card span-2" id="cardIndexed">
         <h3>
           <span>Evolución de asset classes indexada a base 100</span>
           <span class="small" id="sfxIndexed"></span>
           <span class="small">Haz clic en la leyenda para ocultar/mostrar</span>
         </h3>
-        <div class="chart-toolbar">
-          <div class="btn-group">
-            <!-- botones de grupo reales están enlazados por data-attrs en el JS original -->
-            groupTodos</button>
-            groupVigentes</button>
-            groupSolo RV</button>
-            groupSolo RF</button>
-            groupSolo FX</button>
-          </div>
-          <div class="chart-note">La leyenda no afecta el cálculo de filtros. Usa “Todos” para restaurar todas las series.</div>
-        </div>
+        <!-- toolbar vacía (sin HTML corrupto) -->
+        <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note"></div></div>
         <div id="chartIndexed" class="plot"></div>
       </div>
 
-      <!-- 3) Barras de retorno — FULL -->
       <div class="card span-2" id="cardReturnBars">
         <h3>
           <span>Retorno acumulado por asset class</span>
           <span class="small" id="sfxReturnBars"></span>
           <span class="small">Barras horizontales ordenadas de mayor a menor</span>
         </h3>
-        <div class="chart-toolbar">
-          <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupSolo RV</button>
-            groupSolo RF</button>
-            groupSolo FX</button>
-          </div>
-          <div class="chart-note">Usa “Todos” para restaurar todas.</div>
-        </div>
+        <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note">Usa la leyenda para mostrar/ocultar.</div></div>
         <div id="chartReturnBars" class="plot"></div>
-        <!-- Leyenda inferior nativa de Plotly (abajo del gráfico) -->
       </div>
 
-      <!-- 4) Waterfall — FULL (con leyenda inferior tipo chips) -->
       <div class="card span-2" id="cardWaterfall">
         <h3>
           <span>Waterfall — Contribución por asset class</span>
           <span class="small" id="sfxWaterfall"></span>
           <span class="small" id="wfVector"></span>
         </h3>
-        <div class="chart-toolbar">
-          <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupSolo RV</button>
-            groupSolo RF</button>
-            groupSolo FX</button>
-          </div>
-          <div class="chart-note">Filtra por grupo o “Vigentes”.</div>
-        </div>
+        <div class="chart-toolbar"><div class="btn-group"></div><div class="chart-note">Usa la leyenda (chips) para mostrar/ocultar.</div></div>
         <div id="chartWaterfall" class="plot"></div>
-        <!-- Leyenda personalizada inferior (chips) -->
         <div id="wfLegend" class="chart-legend" aria-label="Leyenda Waterfall (clic para ocultar/mostrar)"></div>
       </div>
 
-      <!-- 5) Descomposición — FULL -->
       <div class="card span-2" id="cardDecomposition">
         <h3>
           <span>Descomposición: Allocation vs Selection (RV/RF) vs FX</span>
@@ -498,7 +457,6 @@
         <div id="chartDecomposition" class="plot"></div>
       </div>
 
-      <!-- Restantes en parejas -->
       <div class="card" id="cardDrawdown">
         <h3>
           <span>Curva de Drawdown</span>
@@ -534,7 +492,7 @@
     </section>
   </div>
 
-  <!-- ===== POPUP ligero anclado al botón (reemplaza al modal previo) ===== -->
+  <!-- POPUP de vectores -->
   <div id="vectorPopover" class="popover" role="dialog" aria-modal="false" aria-labelledby="vpTitle">
     <header>
       <strong id="vpTitle">Selecciona vectores</strong>
@@ -545,7 +503,7 @@
     </header>
     <div class="body">
       <input id="vpSearch" class="search" type="search" placeholder="Filtrar por nombre…" />
-      <div id="vpList" class="grid"><!-- checkboxes dinámicos --></div>
+      <div id="vpList" class="grid"></div>
     </div>
     <div class="footer">
       <span class="small">Seleccionados: <strong id="vpCount">0</strong></span>
@@ -557,9 +515,9 @@
   </div>
 
   <script>
-    // =============================
-    // UTILIDADES GENERALES
-    // =============================
+    /* =============================
+       UTILIDADES GENERALES
+       ============================= */
     const ANN_FACTOR = Math.sqrt(252);
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot", "usdjpy_spot", "Duracion"]);
 
@@ -626,7 +584,8 @@
     const fmtNum = (x,d=6)=> Number.isFinite(x)? x.toFixed(d):"—";
 
     function parseCSV(text, delimiter = ";") {
-      const cleaned = text.replace/^\uFEFF/, "";
+      /* FIX 2: sintaxis correcta del replace BOM */
+      const cleaned = text.replace(/^\uFEFF/, "");
       const lines = cleaned.split(/\r?\n/).filter(l => l.trim().length > 0);
       if (!lines.length) return { headers: [], rows: [] };
 
@@ -658,12 +617,10 @@
       return { headers, rows };
     }
 
-    // No-op si el span ya no existe (quitado del header)
     function setStatus(text) {
       const el = document.getElementById("loadStatus");
       if (el) el.textContent = text;
     }
-
     function appendDiag(msgObj) {
       const pre = document.getElementById("diagBox");
       const line = typeof msgObj === "string" ? msgObj : JSON.stringify(msgObj, null, 2);
@@ -697,9 +654,9 @@
       };
     }
 
-    // =============================
-    // ESTADO
-    // =============================
+    /* =============================
+       ESTADO
+       ============================= */
     const state = {
       theme: "light",
       dates: [],
@@ -759,9 +716,9 @@
       renderAll();
     }
 
-    // =============================
-    // CARGA Y PARSING
-    // =============================
+    /* =============================
+       CARGA Y PARSING
+       ============================= */
     function fetchWithTimeout(url, ms = 30000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
@@ -773,13 +730,11 @@
       const trResp = await fetchWithTimeout("./trackrecord.csv");
       if (!trResp.ok) throw new Error("Error cargando trackrecord.csv (HTTP " + trResp.status + ")");
       const trText = await trResp.text();
-      appendDiag({ trackrecord_size: trText.length });
 
       setStatus("Cargando gaps.csv…");
       const gpResp = await fetchWithTimeout("./gaps.csv");
       if (!gpResp.ok) throw new Error("Error cargando gaps.csv (HTTP " + gpResp.status + ")");
       const gpText = await gpResp.text();
-      appendDiag({ gaps_size: gpText.length });
 
       const track = parseCSV(trText, ";");
       const gaps = parseCSV(gpText, ";");
@@ -863,17 +818,11 @@
       document.getElementById("dateCount").textContent = commonISO.length;
       document.getElementById("assetCount").textContent = Object.keys(returnsByAsset).length;
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
-
-      appendDiag({
-        common_dates: commonISO.length,
-        assets_with_returns: Object.keys(returnsByAsset),
-        sample_vectors: state.vectorNames.slice(0, 10)
-      });
     }
 
-    // =============================
-    // PRE-CÁLCULOS
-    // =============================
+    /* =============================
+       PRE-CÁLCULOS
+       ============================= */
     function precomputeAll() {
       const N = state.isoDates.length;
       const perVector = {};
@@ -951,12 +900,11 @@
       }
 
       state.perVector = perVector;
-      appendDiag({ precompute_done_for_vectors: state.vectorNames.length });
     }
 
-    // =============================
-    // MÉTRICAS / RANGOS
-    // =============================
+    /* =============================
+       MÉTRICAS / RANGOS
+       ============================= */
     function idxWindowByDates(dates, fromDate, toDate) {
       const idx = [];
       for (let i = 0; i < dates.length; i++) {
@@ -1093,9 +1041,9 @@
       set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist");
     }
 
-    // =============================
-    // PLOTLY BASE
-    // =============================
+    /* =============================
+       PLOTLY BASE
+       ============================= */
     function baseLayout(title = "") {
       const c = getThemeColors();
       return {
@@ -1103,7 +1051,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
+        margin: { l: 55, r: 20, t: 30, b: 80 },
         hovermode: "x unified",
         xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
         yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid, automargin: true },
@@ -1124,14 +1072,14 @@
         const asset = trace?.name;
         if (!asset) return false;
         toggleChartAsset(chartKey, asset);
-        return false; // prevenimos el toggle nativo, usamos nuestro estado
+        return false;
       });
       gd.__legendToggleBound = true;
     }
 
-    // =============================
-    // GRÁFICAS
-    // =============================
+    /* =============================
+       GRÁFICAS
+       ============================= */
     function plotCumulative() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
@@ -1244,7 +1192,6 @@
       bindLegendToggle("chartIndexed", "indexed");
     }
 
-    /* =========== 3) Barras de retorno — con leyenda inferior (Plotly) =========== */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
@@ -1328,7 +1275,6 @@
       return agg;
     }
 
-    /* ========== Waterfall — con leyenda inferior (chips) para ocultar/mostrar assets ========== */
     function renderWaterfallLegend(allAssets, visibleSet) {
       const cont = document.getElementById("wfLegend");
       cont.innerHTML = "";
@@ -1347,7 +1293,7 @@
         const btn = e.target.closest(".legend-chip");
         if (!btn) return;
         const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("waterfall", asset); // re-renderAll(); legend se reconstruye
+        toggleChartAsset("waterfall", asset);
       };
     }
 
@@ -1371,7 +1317,6 @@
       const visible = state.visibility.waterfall || new Set(allFocusAssets);
       const orderAssets = allFocusAssets.filter(a => visible.has(a));
 
-      // Construir leyenda inferior (chips) SIEMPRE, con estado activo/inactivo
       renderWaterfallLegend(allFocusAssets, visible);
 
       if (!orderAssets.length || !idxs.length) {
@@ -1403,7 +1348,7 @@
       };
 
       const layout = baseLayout("");
-      layout.showlegend = false; // usamos leyenda personalizada inferior
+      layout.showlegend = false;
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
       layout.margin.t = 30;
@@ -1411,7 +1356,6 @@
       layout.margin.l = 60;
       layout.margin.r = 20;
 
-      // Altura moderada (el grid se adapta automáticamente)
       const nBars = x.length;
       const base = 340;
       const step = 18;
@@ -1551,7 +1495,7 @@
       Plotly.react("chartBars", [trace], layout, { displayModeBar: false, responsive: true });
     }
 
-    /* ======== RESTAURADO: Histograma de alpha diario (plotHist) ======== */
+    /* === Histograma de alpha diario === */
     function plotHist() {
       if (!window.Plotly) return;
       const v = state.focusVector;
@@ -1584,7 +1528,6 @@
 
       Plotly.react("chartHist", [trace], layout, { displayModeBar: false, responsive: true });
     }
-    /* =================== FIN plotHist =================== */
 
     function updateMetrics() {
       const v = state.focusVector;
@@ -1627,17 +1570,17 @@
       plotCumulative();
       renderIndexedReturnsChart();
       renderReturnBarsChart();
-      plotWaterfall();                  // con leyenda inferior (chips)
+      plotWaterfall();
       plotDecomposition();
       plotDrawdown();
       plotHeatmap();
       plotContributionBars();
-      plotHist();                       // <--- ya definida nuevamente
+      plotHist();
     }
 
-    // =============================
-    // UI / EVENTOS
-    // =============================
+    /* =============================
+       UI / EVENTOS
+       ============================= */
     function bindUIDelegates() {
       document.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-action]");
@@ -1658,23 +1601,20 @@
       chip.textContent = n === 0 ? "0 seleccionados" : (n === 1 ? `${state.selectedVectors[0]}` : `${n} seleccionados`);
     }
 
-    /* ======= POPUP de vectores (anclado) ======= */
+    /* POPUP de vectores (anclado) */
     function positionPopover(pop, anchorBtn) {
       const btnRect = anchorBtn.getBoundingClientRect();
       const vw = document.documentElement.clientWidth;
       const vh = document.documentElement.clientHeight;
 
-      const popRect = pop.getBoundingClientRect(); // tras abrir en display:block
+      const popRect = pop.getBoundingClientRect();
 
-      // Preferir debajo del botón, alineado a la izquierda; ajustar si se sale
       let top = btnRect.bottom + 8;
       let left = btnRect.left;
 
-      // Si no cabe hacia abajo, abrir hacia arriba
       if (top + popRect.height > vh - 8) {
         top = Math.max(8, btnRect.top - 8 - popRect.height);
       }
-      // Si se sale por la derecha, ajustar
       if (left + popRect.width > vw - 8) {
         left = Math.max(8, vw - 8 - popRect.width);
       }
@@ -1690,7 +1630,6 @@
       const search = document.getElementById("vpSearch");
       const btn = document.getElementById("openVectorModal");
 
-      // Construir lista / refrescar
       const buildList = (filterText = "") => {
         list.innerHTML = "";
         const frag = document.createDocumentFragment();
@@ -1721,11 +1660,9 @@
       pop.classList.add("open");
       btn.setAttribute("aria-expanded", "true");
 
-      // Posicionar respecto al botón (usar display:block para medir)
-      pop.style.display = "block"; // temporal para medir
+      pop.style.display = "block";
       positionPopover(pop, btn);
 
-      // Eventos internos
       list.onchange = refreshCount;
       search.oninput = (e) => buildList(e.target.value || "");
 
@@ -1746,11 +1683,8 @@
         closeVectorPopover();
       };
 
-      // Cerrar al hacer clic fuera
       window.addEventListener("mousedown", outsideClickHandler, { capture: true });
-      // Cerrar con Escape
       window.addEventListener("keydown", escHandler);
-      // Reposicionar en scroll/resize
       window.addEventListener("scroll", repositionHandler, { passive: true });
       window.addEventListener("resize", repositionHandler);
 
@@ -1765,12 +1699,10 @@
         if (pop.classList.contains("open")) positionPopover(pop, btn);
       }
 
-      // Guardar handlers para quitarlos al cerrar (en propiedades del nodo)
       pop._outsideClickHandler = outsideClickHandler;
       pop._escHandler = escHandler;
       pop._repositionHandler = repositionHandler;
 
-      // Enfocar buscador para UX
       setTimeout(() => search.focus(), 0);
     }
 
@@ -1781,7 +1713,6 @@
       pop.style.display = "none";
       btn.setAttribute("aria-expanded", "false");
 
-      // Limpieza de listeners
       if (pop._outsideClickHandler) {
         window.removeEventListener("mousedown", pop._outsideClickHandler, { capture: true });
         pop._outsideClickHandler = null;
@@ -1796,19 +1727,16 @@
         pop._repositionHandler = null;
       }
     }
-    /* ======= FIN POPUP ======= */
 
     function initUI() {
       const vFocus = document.getElementById("vectorFocus");
 
-      // Poblado de opciones de foco
       state.vectorNames.forEach(v => {
         const opt2 = document.createElement("option");
         opt2.value = v; opt2.textContent = v;
         vFocus.appendChild(opt2);
       });
 
-      // Defaults: intentar "cual" y "final"
       const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
       const defaults = [];
       if (lower.has("cual"))  defaults.push(lower.get("cual"));
@@ -1816,11 +1744,9 @@
       if (defaults.length === 0) state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       else state.selectedVectors = Array.from(new Set(defaults));
 
-      // Vector foco por defecto
       state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
       vFocus.value = state.focusVector || "";
 
-      // Fechas
       const dFrom = document.getElementById("dateFrom");
       const dTo   = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
@@ -1836,15 +1762,13 @@
       ensureVisibilityDefaults();
       updateVectorSummaryChip();
 
-      // Listeners
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
         renderAll();
       });
 
-      // POPUP anclado
-      document.getElementById("openVectorModal").addEventListener("click", (e) => {
+      document.getElementById("openVectorModal").addEventListener("click", () => {
         const pop = document.getElementById("vectorPopover");
         if (pop.classList.contains("open")) closeVectorPopover(); else openVectorPopover();
       });
@@ -1875,7 +1799,6 @@
         renderAll();
       });
 
-      // Tema: íconos sol/luna
       const iconSun  = document.getElementById("iconSun");
       const iconMoon = document.getElementById("iconMoon");
       const updateThemeIcon = () => {
@@ -1896,9 +1819,6 @@
     window.addEventListener("error", (e) => { appendDiag({ js_error: e.message || String(e) }); });
     window.addEventListener("unhandledrejection", (e) => { appendDiag({ promise_rejection: String(e.reason) }); });
 
-    // =============================
-    // INICIALIZACIÓN
-    // =============================
     (async function main() {
       try {
         bindUIDelegates();
@@ -1908,7 +1828,7 @@
         precomputeAll();
         initUI();
         renderAll();
-        setStatus(""); // sin texto visible en header
+        setStatus("");
       } catch (err) {
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
