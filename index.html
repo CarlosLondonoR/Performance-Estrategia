@@ -304,7 +304,60 @@
     @media (max-width: 720px) {
       .metrics { grid-template-columns: 1fr 1fr; }
     }
-  </style>
+  
+
+ /* ===== Tabla de Gaps (subrangos) ===== */
+ .gap-table {
+   border: 1px solid var(--edge);
+   border-radius: 12px;
+   padding: 10px;
+   overflow: auto;
+   background: var(--panel);
+ }
+ .gap-subrange {
+   border: 1px dashed var(--grid);
+   border-radius: 12px;
+   padding: 10px;
+   margin-bottom: 10px;
+ }
+ .gap-subrange:last-child { margin-bottom: 0; }
+ .gap-subrange .sr-title {
+   display: flex;
+   align-items: baseline;
+   justify-content: space-between;
+   gap: 10px;
+   flex-wrap: wrap;
+   margin-bottom: 8px;
+ }
+ .gap-subrange .sr-title strong { font-size: 13px; }
+ table.gap-tbl {
+   width: 100%;
+   border-collapse: collapse;
+   font-size: 12px;
+ }
+ table.gap-tbl th, table.gap-tbl td {
+   border-bottom: 1px solid var(--grid);
+   padding: 6px 6px;
+   text-align: right;
+   white-space: nowrap;
+ }
+ table.gap-tbl th:first-child, table.gap-tbl td:first-child {
+   text-align: left;
+   width: 40%;
+ }
+ table.gap-tbl thead th {
+   position: sticky;
+   top: 0;
+   background: var(--panel);
+   z-index: 1;
+ }
+ table.gap-tbl tfoot td {
+   font-weight: 700;
+   border-top: 1px solid var(--edge);
+ }
+ .gap-muted { color: var(--muted); }
+
+</style>
 </head>
 <body>
   <div class="app">
@@ -498,6 +551,28 @@
         </h3>
         <div id="chartDecomposition" class="plot"></div>
       </div>
+
+ <!-- 6) Gaps del vector foco — FULL -->
+ <div class="card span-2" id="cardGaps">
+ <h3>
+ <span>Gaps del vector foco — Subrangos y alpha por asset class</span>
+ <span class="small" id="sfxGaps"></span>
+ <span class="small" id="gapVector"></span>
+ </h3>
+ <div class="chart-toolbar">
+ <div class="btn-group">
+ <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ALL">Todos</button>
+ <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ACTIVE">Vigentes</button>
+ <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RV">RV</button>
+ <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RF">RF</button>
+ <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="FX">FX</button>
+ </div>
+ <div class="chart-note">Los gaps se muestran en el orden de gaps.csv. El “Retorno” es la suma de retornos diarios del subrango (coherente con el alpha acumulado).</div>
+ </div>
+ <div id="gapTable" class="gap-table"></div>
+ <div id="gapsLegend" class="chart-legend" aria-label="Leyenda Gaps (clic para ocultar/mostrar)"></div>
+ </div>
+
 
       <!-- Restantes en parejas -->
       <div class="card" id="cardDrawdown">
@@ -740,11 +815,11 @@
     }
     function setChartGroupVisibility(chartKey, group) {
       const filterActive = (arr) => arr.filter(a => !INACTIVE_FOR_ACTIVE_VIEW.has(a));
-      if (chartKey === "waterfall") {
-        const all = getFocusVectorAssetsOrdered();
-        if (group === "ALL") state.visibility.waterfall = new Set(all);
-        else if (group === "ACTIVE") state.visibility.waterfall = new Set(filterActive(all));
-        else state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
+      if (chartKey === "waterfall" || chartKey === "gaps") {
+        const all = (chartKey === "waterfall" ? getFocusVectorAssetsOrdered() : getGapsAssetsOrdered());
+        if (group === "ALL") state.visibility[chartKey] = new Set(all);
+        else if (group === "ACTIVE") state.visibility[chartKey] = new Set(filterActive(all));
+        else state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
       } else {
         const all = getOrderedReturnAssets();
         if (group === "ALL") state.visibility[chartKey] = new Set(all);
@@ -833,6 +908,7 @@
       });
 
       const vectors = {};
+ const vectorAssetOrder = {};
       const vectorCols = gaps.headers.slice(1);
       for (const col of vectorCols) {
         if (!col) continue;
@@ -1082,7 +1158,7 @@
       const label = getWindowLabel();
       const set = (id) => { const el = document.getElementById(id); if (el) el.textContent = `(${label})`; };
       set("sfxCumulative"); set("sfxIndexed"); set("sfxReturnBars"); set("sfxWaterfall"); set("sfxDecomposition");
-      set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist");
+      set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist"); set("sfxGaps");
     }
 
     // =============================
@@ -1332,6 +1408,8 @@
       layout.yaxis.categoryorder = "array";
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
+ layout.yaxis.tickfont = { size: 10 };
+ layout.margin.l = 140;
 
       layout.margin.l = 220;
       layout.margin.r = 150;
@@ -1481,7 +1559,131 @@
       Plotly.react("chartDecomposition", [trAlloc, trSelRV, trSelRF, trFX], layout, { displayModeBar: false, responsive: true });
     }
 
-    function groupContribByMonthAndAsset(vectorName, idxs) {
+    
+ /* =============================
+  * MÓDULO: Gaps del vector foco (subrangos)
+  * ============================= */
+ function renderGapsLegend(allAssets, visibleSet) {
+  const cont = document.getElementById("gapsLegend");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  allAssets.forEach(a => {
+   const chip = document.createElement("button");
+   chip.type = "button";
+   chip.className = "legend-chip " + (visibleSet.has(a) ? "active" : "off");
+   chip.textContent = a;
+   chip.setAttribute("data-asset", a);
+   frag.appendChild(chip);
+  });
+  cont.appendChild(frag);
+  cont.onclick = (e) => {
+   const btn = e.target.closest(".legend-chip");
+   if (!btn) return;
+   const asset = btn.getAttribute("data-asset");
+   toggleChartAsset("gaps", asset);
+  };
+ }
+
+ function buildGapsSubranges(vName, idxs, orderedAssets) {
+  const gapsByAsset = state.vectors[vName].gapsByAsset || {};
+  const sigForT = (t) => orderedAssets.map(a => {
+    const g = gapsByAsset[a]?.[t] ?? 0;
+    return Number.isFinite(g) ? g.toFixed(8) : "0.00000000";
+  }).join("|");
+
+  const ranges = [];
+  let curStart = null;
+  let curSig = null;
+  for (let k = 0; k < idxs.length; k++) {
+   const t = idxs[k];
+   const sig = sigForT(t);
+   if (curSig === null) { curSig = sig; curStart = t; continue; }
+   if (sig !== curSig) {
+    ranges.push({ start: curStart, end: idxs[k-1], sig: curSig });
+    curStart = t;
+    curSig = sig;
+   }
+  }
+  if (curSig !== null && curStart !== null) ranges.push({ start: curStart, end: idxs[idxs.length-1], sig: curSig });
+  return ranges;
+ }
+
+ function sumReturns(asset, idxStart, idxEnd) {
+  const rets = state.returnsByAsset[asset];
+  if (!rets) return NaN;
+  let s = 0;
+  for (let t = idxStart; t <= idxEnd; t++) {
+   const r = rets[t];
+   if (Number.isFinite(r)) s += r;
+  }
+  return s;
+ }
+
+ function renderGapsModule() {
+  const cont = document.getElementById("gapTable");
+  const v = state.focusVector;
+  const lbl = document.getElementById("gapVector");
+  if (lbl) lbl.textContent = v ? `Vector: ${v}` : "";
+  if (!cont) return;
+
+  if (!v || !state.vectors[v]) {
+    cont.innerHTML = `<div class="gap-muted">Selecciona un vector foco.</div>`;
+    renderGapsLegend([], new Set());
+    return;
+  }
+
+  const idxs = getCurrentWindowIdxs();
+  if (!idxs.length) {
+    cont.innerHTML = `<div class="gap-muted">No hay fechas visibles para la ventana seleccionada.</div>`;
+    renderGapsLegend(getGapsAssetsOrdered(), state.visibility.gaps || new Set());
+    return;
+  }
+
+  const allAssets = getGapsAssetsOrdered();
+  const visible = state.visibility.gaps || new Set(allAssets);
+  renderGapsLegend(allAssets, visible);
+
+  const showAssets = allAssets.filter(a => visible.has(a));
+  if (!showAssets.length) {
+    cont.innerHTML = `<div class="gap-muted">No hay asset classes visibles para mostrar.</div>`;
+    return;
+  }
+
+  const ranges = buildGapsSubranges(v, idxs, allAssets);
+  const gapsByAsset = state.vectors[v].gapsByAsset || {};
+
+  const parts = [];
+  for (const r of ranges) {
+    const d0 = state.dates[r.start];
+    const d1 = state.dates[r.end];
+    const days = (r.end - r.start + 1);
+
+    parts.push(`<div class="gap-subrange">`);
+    parts.push(`<div class="sr-title"><strong>Subrango:</strong><span class="gap-muted">${fmtDateHuman(d0)} — ${fmtDateHuman(d1)} · ${days} día(s)</span></div>`);
+    parts.push(`<table class="gap-tbl">`);
+    parts.push(`<thead><tr><th>Asset class</th><th>Gap</th><th>Retorno (Σ diario)</th><th>Alpha (bps)</th></tr></thead>`);
+    parts.push(`<tbody>`);
+
+    let totAlpha = 0;
+    for (const a of showAssets) {
+      const gap = gapsByAsset[a]?.[r.start] ?? 0;
+      const retSum = sumReturns(a, r.start, r.end);
+      const alpha = (Number.isFinite(gap) && Number.isFinite(retSum)) ? (gap * retSum) : NaN;
+      const alphaBps = toBps(alpha);
+      if (Number.isFinite(alphaBps)) totAlpha += alphaBps;
+      parts.push(`<tr><td>${a}</td><td>${fmtPct(gap, 2)}</td><td>${fmtPct(retSum, 2)}</td><td>${Number.isFinite(alphaBps) ? alphaBps.toFixed(1) : "—"}</td></tr>`);
+    }
+
+    parts.push(`</tbody>`);
+    parts.push(`<tfoot><tr><td>Total (visibles)</td><td></td><td></td><td>${totAlpha.toFixed(1)}</td></tr></tfoot>`);
+    parts.push(`</table></div>`);
+  }
+
+  cont.innerHTML = parts.join("");
+ }
+
+function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const monthKeys = [];
       const keyToIdx = new Map();
@@ -1539,6 +1741,8 @@
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
+ layout.yaxis.tickfont = { size: 10 };
+ layout.margin.l = 140;
 
       Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
