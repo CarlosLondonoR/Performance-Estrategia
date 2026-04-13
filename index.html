@@ -306,56 +306,63 @@
     }
   
 
-    /* ===== Tabla de Gaps (subrangos) ===== */
-    .gap-table {
-      border: 1px solid var(--edge);
-      border-radius: 12px;
-      padding: 10px;
-      overflow: auto;
-      background: var(--panel);
-    }
-    .gap-subrange {
-      border: 1px dashed var(--grid);
-      border-radius: 12px;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .gap-subrange:last-child { margin-bottom: 0; }
-    .gap-subrange .sr-title {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-    .gap-subrange .sr-title strong { font-size: 13px; }
-    table.gap-tbl {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    table.gap-tbl th, table.gap-tbl td {
-      border-bottom: 1px solid var(--grid);
-      padding: 6px 6px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    table.gap-tbl th:first-child, table.gap-tbl td:first-child {
-      text-align: left;
-      width: 40%;
-    }
-    table.gap-tbl thead th {
-      position: sticky;
-      top: 0;
-      background: var(--panel);
-      z-index: 1;
-    }
-    table.gap-tbl tfoot td {
-      font-weight: 700;
-      border-top: 1px solid var(--edge);
-    }
-    .gap-muted { color: var(--muted); }
+  /* ===== Tabla de Gaps (subrangos) ===== */
+  #cardGaps.collapsed .gaps-body { display: none; }
+  #cardGaps h3 { cursor: pointer; user-select: none; }
+  #cardGaps h3:hover { opacity: 0.92; }
+  #cardGaps .chev { display:inline-block; transition: transform 0.15s ease; }
+  #cardGaps:not(.collapsed) .chev { transform: rotate(90deg); }
+
+  .gap-table {
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 10px;
+    overflow: auto;
+    background: var(--panel);
+  }
+  .gap-subrange {
+    border: 1px dashed var(--grid);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .gap-subrange:last-child { margin-bottom: 0; }
+  .gap-subrange .sr-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .gap-subrange .sr-title strong { font-size: 13px; }
+  table.gap-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.gap-tbl th, table.gap-tbl td {
+    border-bottom: 1px solid var(--grid);
+    padding: 6px 6px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  table.gap-tbl th:first-child, table.gap-tbl td:first-child {
+    text-align: left;
+    width: 40%;
+  }
+  table.gap-tbl thead th {
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    z-index: 1;
+  }
+  table.gap-tbl tfoot td {
+    font-weight: 700;
+    border-top: 1px solid var(--edge);
+  }
+  .gap-muted { color: var(--muted); }
+  .gap-val { font-variant-numeric: tabular-nums; font-weight: 650; }
 
 </style>
 </head>
@@ -552,30 +559,6 @@
         <div id="chartDecomposition" class="plot"></div>
       </div>
 
-    <!-- 6) Gaps del vector foco — FULL -->
-    <div class="card span-2" id="cardGaps">
-      <h3>
-        <span>Gaps del vector foco — Subrangos y alpha por asset class</span>
-        <span class="small" id="sfxGaps"></span>
-        <span class="small" id="gapVector"></span>
-      </h3>
-
-      <div class="chart-toolbar">
-        <div class="btn-group">
-          <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ALL">Todos</button>
-          <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ACTIVE">Vigentes</button>
-          <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RV">RV</button>
-          <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RF">RF</button>
-          <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="FX">FX</button>
-        </div>
-        <div class="chart-note">Los gaps se muestran en el orden de gaps.csv. El “Retorno” es la suma de retornos diarios del subrango (coherente con el alpha acumulado).</div>
-      </div>
-
-      <div id="gapTable" class="gap-table"></div>
-      <div id="gapsLegend" class="chart-legend" aria-label="Leyenda Gaps (clic para ocultar/mostrar)"></div>
-    </div>
-
-
       <!-- Restantes en parejas -->
       <div class="card" id="cardDrawdown">
         <h3>
@@ -609,7 +592,33 @@
         </h3>
         <div id="chartHist" class="plot"></div>
       </div>
-    </section>
+    
+
+    <!-- Gaps del vector foco — FULL (colapsable) -->
+    <div class="card span-2 collapsed" id="cardGaps">
+      <h3 id="gapsHeader" title="Clic para expandir/colapsar">
+        <span><span class="chev">▶</span> Gaps del vector foco — Subrangos y alpha por asset class</span>
+        <span class="small" id="sfxGaps"></span>
+        <span class="small" id="gapVector"></span>
+      </h3>
+
+      <div class="gaps-body">
+        <div class="chart-toolbar">
+          <div class="btn-group">
+            <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ALL">Todos</button>
+            <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="ACTIVE">Vigentes</button>
+            <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RV">RV</button>
+            <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="RF">RF</button>
+            <button class="btn ghost small" data-action="group" data-chart="gaps" data-group="FX">FX</button>
+          </div>
+          <div class="chart-note">Los gaps se muestran en el orden de gaps.csv. Colores: mayor (verde) / menor (rojo) por métrica y por subrango.</div>
+        </div>
+
+        <div id="gapTable" class="gap-table"></div>
+        <div id="gapsLegend" class="chart-legend" aria-label="Leyenda Gaps (clic para ocultar/mostrar)"></div>
+      </div>
+    </div>
+</section>
   </div>
 
   <!-- ===== POPUP ligero anclado al botón (reemplaza al modal previo) ===== -->
@@ -785,7 +794,6 @@
       returnsByAsset: {},
       groupsByAsset: {},
       vectors: {},
-      vectorAssetOrder: {},
       vectorNames: [],
       perVector: {},
       selectedVectors: [],
@@ -811,24 +819,24 @@
       return RETURN_ASSET_ORDER.filter(a => assetsInVector.has(a));
     }
     function getGapsAssetsOrdered() {
-      const v = state.focusVector;
-      if (!v || !state.vectors[v]) return [];
-      const ord = state.vectorAssetOrder?.[v];
-      if (Array.isArray(ord) && ord.length) return ord.slice();
-      const assetsInVector = new Set(Object.keys(state.vectors[v].gapsByAsset || {}));
-      const inOrder = RETURN_ASSET_ORDER.filter(a => assetsInVector.has(a));
-      const rest = Array.from(assetsInVector).filter(a => !inOrder.includes(a));
-      return [...inOrder, ...rest];
-    }
-    
-    function ensureVisibilityDefaults() {
+  const v = state.focusVector;
+  if (!v || !state.vectors[v]) return [];
+  const ord = state.vectorAssetOrder?.[v];
+  if (Array.isArray(ord) && ord.length) return ord.slice();
+  const assetsInVector = new Set(Object.keys(state.vectors[v].gapsByAsset || {}));
+  const inOrder = RETURN_ASSET_ORDER.filter(a => assetsInVector.has(a));
+  const rest = Array.from(assetsInVector).filter(a => !inOrder.includes(a));
+  return [...inOrder, ...rest];
+}
+
+function ensureVisibilityDefaults() {
       const allReturnAssets = getOrderedReturnAssets();
       if (!state.visibility.indexed.size)     state.visibility.indexed     = new Set(allReturnAssets);
       if (!state.visibility.returnBars.size)  state.visibility.returnBars  = new Set(allReturnAssets);
       const wfAssets = getFocusVectorAssetsOrdered();
       if (!state.visibility.waterfall.size)   state.visibility.waterfall   = new Set(wfAssets);
-      const gapAssets = getGapsAssetsOrdered();
-      if (!state.visibility.gaps.size)       state.visibility.gaps       = new Set(gapAssets);
+  const gapAssets = getGapsAssetsOrdered();
+  if (!state.visibility.gaps.size) state.visibility.gaps = new Set(gapAssets);
     }
     function setChartGroupVisibility(chartKey, group) {
       const filterActive = (arr) => arr.filter(a => !INACTIVE_FOR_ACTIVE_VIEW.has(a));
@@ -925,7 +933,7 @@
       });
 
       const vectors = {};
-      const vectorAssetOrder = {};
+    const vectorAssetOrder = {};
       const vectorCols = gaps.headers.slice(1);
       for (const col of vectorCols) {
         if (!col) continue;
@@ -933,10 +941,10 @@
         if (lastUnd <= 0 || lastUnd === col.length - 1) { console.warn("Columna gaps sin separador válido '_':", col); continue; }
 
         const assetName = col.slice(0, lastUnd);
-      const vectorName = col.slice(lastUnd + 1);
-      const mappedAssetName = (TICKER_MAP[assetName]?.asset) ?? assetName;
-      if (!vectorAssetOrder[vectorName]) vectorAssetOrder[vectorName] = [];
-      if (!vectorAssetOrder[vectorName].includes(mappedAssetName)) vectorAssetOrder[vectorName].push(mappedAssetName);
+    const vectorName = col.slice(lastUnd + 1);
+    const mappedAssetName = (TICKER_MAP[assetName]?.asset) ?? assetName;
+    if (!vectorAssetOrder[vectorName]) vectorAssetOrder[vectorName] = [];
+    if (!vectorAssetOrder[vectorName].includes(mappedAssetName)) vectorAssetOrder[vectorName].push(mappedAssetName);
 
         if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {} };
 
@@ -953,8 +961,8 @@
       state.returnsByAsset = returnsByAsset;
       state.groupsByAsset = groupsByAsset;
       state.vectors = vectors;
-      state.vectorAssetOrder = vectorAssetOrder;
-      state.vectorNames = Object.keys(vectors).sort((a, b) => a.localeCompare(b, "es"));
+    state.vectorAssetOrder = vectorAssetOrder;
+    state.vectorNames = Object.keys(vectors).sort((a, b) => a.localeCompare(b, "es"));
 
       document.getElementById("dateCount").textContent = commonISO.length;
       document.getElementById("assetCount").textContent = Object.keys(returnsByAsset).length;
@@ -1429,6 +1437,8 @@
       layout.yaxis.categoryorder = "array";
       layout.yaxis.categoryarray = data.map(d => d.asset);
       layout.yaxis.autorange = "reversed";
+
+      layout.margin.l = 220;
       layout.margin.r = 150;
       layout.margin.t = 30;
       layout.margin.b = 60;                     // menos espacio porque no hay leyenda de Plotly
@@ -1529,7 +1539,8 @@
       layout.yaxis.ticksuffix = " bps";
       layout.margin.t = 30;
       layout.margin.b = 80;
-layout.margin.r = 20;
+      layout.margin.l = 60;
+      layout.margin.r = 20;
 
       // Altura moderada
       const nBars = x.length;
@@ -1577,149 +1588,197 @@ layout.margin.r = 20;
 
     
 
-    /* =============================
-     * MÓDULO: Gaps del vector foco (subrangos)
-     * ============================= */
-    function renderGapsLegend(allAssets, visibleSet) {
-      const cont = document.getElementById("gapsLegend");
-      if (!cont) return;
-      cont.innerHTML = "";
-      const frag = document.createDocumentFragment();
-      allAssets.forEach(a => {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "legend-chip " + (visibleSet.has(a) ? "active" : "off");
-        chip.textContent = a;
-        chip.setAttribute("data-asset", a);
-        frag.appendChild(chip);
-      });
-      cont.appendChild(frag);
-      cont.onclick = (e) => {
-        const btn = e.target.closest(".legend-chip");
-        if (!btn) return;
-        const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("gaps", asset);
-      };
+/* =============================
+ * MÓDULO: Gaps del vector foco (subrangos) — colapsable + formato condicional
+ * ============================= */
+function renderGapsLegend(allAssets, visibleSet) {
+  const cont = document.getElementById("gapsLegend");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  allAssets.forEach(a => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "legend-chip " + (visibleSet.has(a) ? "active" : "off");
+    chip.textContent = a;
+    chip.setAttribute("data-asset", a);
+    frag.appendChild(chip);
+  });
+  cont.appendChild(frag);
+  cont.onclick = (e) => {
+    const btn = e.target.closest(".legend-chip");
+    if (!btn) return;
+    const asset = btn.getAttribute("data-asset");
+    toggleChartAsset("gaps", asset);
+  };
+}
+
+function buildGapsSubranges(vName, idxs, orderedAssets) {
+  const gapsByAsset = state.vectors[vName].gapsByAsset || {};
+  const sigForT = (t) => orderedAssets.map(a => {
+    const g = gapsByAsset[a]?.[t] ?? 0;
+    return Number.isFinite(g) ? g.toFixed(8) : "0.00000000";
+  }).join("|");
+
+  const ranges = [];
+  let curStart = null;
+  let curSig = null;
+  for (let k = 0; k < idxs.length; k++) {
+    const t = idxs[k];
+    const sig = sigForT(t);
+    if (curSig === null) { curSig = sig; curStart = t; continue; }
+    if (sig !== curSig) {
+      ranges.push({ start: curStart, end: idxs[k-1] });
+      curStart = t;
+      curSig = sig;
+    }
+  }
+  if (curSig !== null && curStart !== null) ranges.push({ start: curStart, end: idxs[idxs.length-1] });
+  return ranges;
+}
+
+function sumReturns(asset, idxStart, idxEnd) {
+  const rets = state.returnsByAsset[asset];
+  if (!rets) return NaN;
+  let s = 0;
+  for (let t = idxStart; t <= idxEnd; t++) {
+    const r = rets[t];
+    if (Number.isFinite(r)) s += r;
+  }
+  return s;
+}
+
+function hexToRgb(h) {
+  const x = h.replace('#','');
+  const n = parseInt(x, 16);
+  return { r: (n>>16)&255, g: (n>>8)&255, b: n&255 };
+}
+function rgbToHex(r,g,b) {
+  const toHex = (v)=>v.toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+function lerp(a,b,t){ return a + (b-a)*t; }
+function mix(c1,c2,t){
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return rgbToHex(Math.round(lerp(a.r,b.r,t)), Math.round(lerp(a.g,b.g,t)), Math.round(lerp(a.b,b.b,t)));
+}
+function valueToColor(val, vmin, vmax) {
+  if (!Number.isFinite(val) || !Number.isFinite(vmin) || !Number.isFinite(vmax)) return '';
+  if (vmin === vmax) return '#64748b';
+  const RED = '#dc2626', MID = '#64748b', GREEN = '#16a34a';
+  if (vmin < 0 && vmax > 0) {
+    if (val <= 0) {
+      const t = (val - vmin) / (0 - vmin);
+      return mix(RED, MID, Math.max(0, Math.min(1, t)));
+    } else {
+      const t = (val - 0) / (vmax - 0);
+      return mix(MID, GREEN, Math.max(0, Math.min(1, t)));
+    }
+  }
+  const t = (val - vmin) / (vmax - vmin);
+  return mix(RED, GREEN, Math.max(0, Math.min(1, t)));
+}
+
+function renderGapsModule() {
+  const cont = document.getElementById("gapTable");
+  const v = state.focusVector;
+  const lbl = document.getElementById("gapVector");
+  if (lbl) lbl.textContent = v ? `Vector: ${v}` : "";
+  if (!cont) return;
+
+  cont.innerHTML = "";
+
+  try {
+    if (!v || !state.vectors[v]) {
+      cont.innerHTML = `<div class="gap-muted">Selecciona un vector foco.</div>`;
+      renderGapsLegend([], new Set());
+      return;
     }
 
-    function buildGapsSubranges(vName, idxs, orderedAssets) {
-      const gapsByAsset = state.vectors[vName].gapsByAsset || {};
-      const sigForT = (t) => orderedAssets.map(a => {
-        const g = gapsByAsset[a]?.[t] ?? 0;
-        return Number.isFinite(g) ? g.toFixed(8) : "0.00000000";
-      }).join("|");
+    const idxs = getCurrentWindowIdxs();
+    if (!idxs.length) {
+      cont.innerHTML = `<div class="gap-muted">No hay fechas visibles para la ventana seleccionada.</div>`;
+      renderGapsLegend(getGapsAssetsOrdered(), state.visibility.gaps || new Set());
+      return;
+    }
 
-      const ranges = [];
-      let curStart = null;
-      let curSig = null;
-      for (let k = 0; k < idxs.length; k++) {
-        const t = idxs[k];
-        const sig = sigForT(t);
-        if (curSig === null) { curSig = sig; curStart = t; continue; }
-        if (sig !== curSig) {
-          ranges.push({ start: curStart, end: idxs[k-1] });
-          curStart = t;
-          curSig = sig;
-        }
+    const allAssets = getGapsAssetsOrdered();
+    const visible = state.visibility.gaps || new Set(allAssets);
+    renderGapsLegend(allAssets, visible);
+
+    const showAssets = allAssets.filter(a => visible.has(a));
+    if (!showAssets.length) {
+      cont.innerHTML = `<div class="gap-muted">No hay asset classes visibles para mostrar.</div>`;
+      return;
+    }
+
+    const ranges = buildGapsSubranges(v, idxs, allAssets);
+    if (!ranges.length) {
+      cont.innerHTML = `<div class="gap-muted">No se detectaron subrangos para el rango seleccionado.</div>`;
+      return;
+    }
+
+    const gapsByAsset = state.vectors[v].gapsByAsset || {};
+
+    const parts = [];
+    for (const r of ranges) {
+      const d0 = state.dates[r.start];
+      const d1 = state.dates[r.end];
+      const days = (r.end - r.start + 1);
+
+      const gapVals = [], retVals = [], alphaVals = [], rows = [];
+      for (const a of showAssets) {
+        const gap = gapsByAsset[a]?.[r.start] ?? 0;
+        const retSum = sumReturns(a, r.start, r.end);
+        const alpha = (Number.isFinite(gap) && Number.isFinite(retSum)) ? (gap * retSum) : NaN;
+        const alphaBps = toBps(alpha);
+        rows.push({ a, gap, retSum, alphaBps });
+        if (Number.isFinite(gap)) gapVals.push(gap);
+        if (Number.isFinite(retSum)) retVals.push(retSum);
+        if (Number.isFinite(alphaBps)) alphaVals.push(alphaBps);
       }
-      if (curSig !== null && curStart !== null) ranges.push({ start: curStart, end: idxs[idxs.length-1] });
-      return ranges;
-    }
 
-    function sumReturns(asset, idxStart, idxEnd) {
-      const rets = state.returnsByAsset[asset];
-      if (!rets) return NaN;
-      let s = 0;
-      for (let t = idxStart; t <= idxEnd; t++) {
-        const r = rets[t];
-        if (Number.isFinite(r)) s += r;
+      const gMin = gapVals.length ? Math.min(...gapVals) : NaN;
+      const gMax = gapVals.length ? Math.max(...gapVals) : NaN;
+      const rMin = retVals.length ? Math.min(...retVals) : NaN;
+      const rMax = retVals.length ? Math.max(...retVals) : NaN;
+      const aMin = alphaVals.length ? Math.min(...alphaVals) : NaN;
+      const aMax = alphaVals.length ? Math.max(...alphaVals) : NaN;
+
+      parts.push(`<div class="gap-subrange">`);
+      parts.push(`<div class="sr-title"><strong>Subrango:</strong><span class="gap-muted">${fmtDateHuman(d0)} — ${fmtDateHuman(d1)} · ${days} día(s)</span></div>`);
+      parts.push(`<table class="gap-tbl">`);
+      parts.push(`<thead><tr><th>Asset class</th><th>Gap</th><th>Retorno (Σ diario)</th><th>Alpha (bps)</th></tr></thead>`);
+      parts.push(`<tbody>`);
+
+      let totAlpha = 0;
+      for (const row of rows) {
+        const cGap = valueToColor(row.gap, gMin, gMax);
+        const cRet = valueToColor(row.retSum, rMin, rMax);
+        const cAlp = valueToColor(row.alphaBps, aMin, aMax);
+        if (Number.isFinite(row.alphaBps)) totAlpha += row.alphaBps;
+
+        parts.push(
+          `<tr>` +
+          `<td>${row.a}</td>` +
+          `<td><span class="gap-val" style="color:${cGap}">${fmtPct(row.gap, 2)}</span></td>` +
+          `<td><span class="gap-val" style="color:${cRet}">${fmtPct(row.retSum, 2)}</span></td>` +
+          `<td><span class="gap-val" style="color:${cAlp}">${Number.isFinite(row.alphaBps) ? row.alphaBps.toFixed(1) : "—"}</span></td>` +
+          `</tr>`
+        );
       }
-      return s;
+
+      parts.push(`</tbody>`);
+      parts.push(`<tfoot><tr><td>Total (visibles)</td><td></td><td></td><td>${totAlpha.toFixed(1)}</td></tr></tfoot>`);
+      parts.push(`</table></div>`);
     }
 
-    function renderGapsModule() {
-      const cont = document.getElementById("gapTable");
-      const v = state.focusVector;
-      const lbl = document.getElementById("gapVector");
-      if (lbl) lbl.textContent = v ? `Vector: ${v}` : "";
-      if (!cont) return;
-
-      cont.innerHTML = "";
-
-      try {
-        if (!v || !state.vectors[v]) {
-          cont.innerHTML = `<div class="gap-muted">Selecciona un vector foco.</div>`;
-          renderGapsLegend([], new Set());
-          return;
-        }
-
-        const idxs = getCurrentWindowIdxs();
-        if (!idxs.length) {
-          cont.innerHTML = `<div class="gap-muted">No hay fechas visibles para la ventana seleccionada.</div>`;
-          renderGapsLegend(getGapsAssetsOrdered(), state.visibility.gaps || new Set());
-          return;
-        }
-
-        const allAssets = getGapsAssetsOrdered();
-        const visible = state.visibility.gaps || new Set(allAssets);
-        renderGapsLegend(allAssets, visible);
-
-        const showAssets = allAssets.filter(a => visible.has(a));
-        if (!showAssets.length) {
-          cont.innerHTML = `<div class="gap-muted">No hay asset classes visibles para mostrar.</div>`;
-          return;
-        }
-
-        const ranges = buildGapsSubranges(v, idxs, allAssets);
-        if (!ranges.length) {
-          cont.innerHTML = `<div class="gap-muted">No se detectaron subrangos para el rango seleccionado.</div>`;
-          return;
-        }
-
-        const gapsByAsset = state.vectors[v].gapsByAsset || {};
-
-        const parts = [];
-        for (const r of ranges) {
-          const d0 = state.dates[r.start];
-          const d1 = state.dates[r.end];
-          const days = (r.end - r.start + 1);
-
-          parts.push(`<div class="gap-subrange">`);
-          parts.push(`<div class="sr-title"><strong>Subrango:</strong><span class="gap-muted">${fmtDateHuman(d0)} — ${fmtDateHuman(d1)} · ${days} día(s)</span></div>`);
-          parts.push(`<table class="gap-tbl">`);
-          parts.push(`<thead><tr><th>Asset class</th><th>Gap</th><th>Retorno (Σ diario)</th><th>Alpha (bps)</th></tr></thead>`);
-          parts.push(`<tbody>`);
-
-          let totAlpha = 0;
-          for (const a of showAssets) {
-            const gap = gapsByAsset[a]?.[r.start] ?? 0;
-            const retSum = sumReturns(a, r.start, r.end);
-            const alpha = (Number.isFinite(gap) && Number.isFinite(retSum)) ? (gap * retSum) : NaN;
-            const alphaBps = toBps(alpha);
-            if (Number.isFinite(alphaBps)) totAlpha += alphaBps;
-
-            parts.push(
-              `<tr>` +
-              `<td>${a}</td>` +
-              `<td>${fmtPct(gap, 2)}</td>` +
-              `<td>${fmtPct(retSum, 2)}</td>` +
-              `<td>${Number.isFinite(alphaBps) ? alphaBps.toFixed(1) : "—"}</td>` +
-              `</tr>`
-            );
-          }
-
-          parts.push(`</tbody>`);
-          parts.push(`<tfoot><tr><td>Total (visibles)</td><td></td><td></td><td>${totAlpha.toFixed(1)}</td></tr></tfoot>`);
-          parts.push(`</table></div>`);
-        }
-
-        cont.innerHTML = parts.join("");
-      } catch (err) {
-        console.error(err);
-        cont.innerHTML = `<div class="gap-muted">Error renderizando gaps: ${(err && err.message) ? err.message : String(err)}</div>`;
-      }
-    }
-
+    cont.innerHTML = parts.join("");
+  } catch (err) {
+    console.error(err);
+    cont.innerHTML = `<div class="gap-muted">Error renderizando gaps: ${(err && err.message) ? err.message : String(err)}</div>`;
+  }
+}
 function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const monthKeys = [];
@@ -1765,6 +1824,12 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       }
 
       const { x, y, z } = groupContribByMonthAndAsset(v, idxs);
+
+      const plotDiv = document.getElementById("chartHeatmap");
+      const nY = (y || []).length;
+      const baseH = 420;
+      const desiredH = Math.round(Math.min(680, Math.max(baseH, nY * 18 + 240)));
+      if (plotDiv) { plotDiv.style.height = desiredH + "px"; plotDiv.style.minHeight = desiredH + "px"; }
       const zBps = z.map(row => row.map(val => toBps(val)));
 
       const trace = {
@@ -1775,10 +1840,12 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       };
 
       const layout = baseLayout("");
+      layout.autosize = false;
+      layout.height = (typeof desiredH === "number" ? desiredH : 420);
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
-      layout.yaxis.tickfont = { size: 9 };
+      layout.yaxis.tickfont = { size: 7 };
 
       Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
@@ -1894,11 +1961,11 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       renderReturnBarsChart();   // con chips
       plotWaterfall();           // con chips
       plotDecomposition();
-      renderGapsModule();
       plotDrawdown();
       plotHeatmap();
       plotContributionBars();
       plotHist();
+      renderGapsModule();
     }
 
     // =============================
@@ -1906,6 +1973,13 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
     // =============================
     function bindUIDelegates() {
       document.addEventListener("click", (e) => {
+      // Toggle colapsable del módulo de Gaps (clic en el título)
+      if (e.target && e.target.closest && e.target.closest("#gapsHeader")) {
+        const card = document.getElementById("cardGaps");
+        if (card) card.classList.toggle("collapsed");
+        return;
+      }
+
         const btn = e.target.closest("button[data-action]");
         if (!btn) return;
         const action = btn.dataset.action;
@@ -2106,6 +2180,7 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
+        state.visibility.gaps = new Set(getGapsAssetsOrdered());
         renderAll();
       });
 
