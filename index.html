@@ -166,7 +166,7 @@
     .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-auto-rows: minmax(380px, auto);
+      grid-auto-rows: auto;
       gap: 12px;
     }
 
@@ -179,6 +179,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+  min-height: 380px;
       overflow: hidden;
       box-shadow: 0 1px 0 var(--grid) inset, 0 6px 14px rgba(0,0,0,0.06);
     }
@@ -312,10 +313,12 @@
   #cardGaps h3:hover { opacity: 0.92; }
   #cardGaps .chev { display:inline-block; transition: transform 0.15s ease; }
   #cardGaps:not(.collapsed) .chev { transform: rotate(90deg); }
-  /* Compactar tarjeta de Gaps cuando está colapsada */
-  #cardGaps.collapsed { padding: 6px 10px; gap: 0; }
-  #cardGaps.collapsed h3 { font-size: 13px; }
-  #cardGaps.collapsed .small { display: none; }
+
+/* Compactar tarjeta de Gaps cuando está colapsada (una sola línea) */
+#cardGaps.collapsed { padding: 4px 8px; gap: 0; min-height: auto; }
+#cardGaps.collapsed h3 { font-size: 13px; line-height: 1.2; }
+#cardGaps.collapsed .small { display: none; }
+#cardGaps.collapsed h3 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 
   .gap-table {
@@ -374,7 +377,7 @@
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación</div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación v8</div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -1231,6 +1234,47 @@ function ensureVisibilityDefaults() {
       gd.__legendToggleBound = true;
     }
 
+// =============================
+// AUTO-RESIZE (Plotly) — Ajuste robusto al tamaño del módulo
+// =============================
+function getPlotDivIds() {
+  return [
+    "chartCumulative",
+    "chartIndexed",
+    "chartReturnBars",
+    "chartWaterfall",
+    "chartDecomposition",
+    "chartDrawdown",
+    "chartHeatmap",
+    "chartBars",
+    "chartHist"
+  ];
+}
+
+function resizeAllPlots() {
+  if (!window.Plotly || !Plotly.Plots || !Plotly.Plots.resize) return;
+  for (const id of getPlotDivIds()) {
+    const gd = document.getElementById(id);
+    if (gd && gd.data) {
+      try { Plotly.Plots.resize(gd); } catch (_) {}
+    }
+  }
+}
+
+let __plotResizeObserver = null;
+function bindAutoResizePlots() {
+  if (__plotResizeObserver) return;
+  if (typeof ResizeObserver === "undefined") return;
+  __plotResizeObserver = new ResizeObserver(() => {
+    requestAnimationFrame(() => resizeAllPlots());
+  });
+  for (const id of getPlotDivIds()) {
+    const el = document.getElementById(id);
+    if (el) __plotResizeObserver.observe(el);
+  }
+}
+
+
     // =============================
     // GRÁFICAS
     // =============================
@@ -1267,15 +1311,6 @@ function ensureVisibilityDefaults() {
     function plotDrawdown() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
-      const plotDiv = document.getElementById("chartDrawdown");
-      const card = document.getElementById("cardDrawdown");
-      let desiredH = null;
-      if (plotDiv && card) {
-        // Ajustar altura para que la gráfica ocupe el módulo completo (sin exceder márgenes)
-        desiredH = Math.max(320, Math.min(900, card.clientHeight - 70));
-        plotDiv.style.height = desiredH + "px";
-        plotDiv.style.minHeight = desiredH + "px";
-      }
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
       const sel = selectedVectorsList();
@@ -1295,8 +1330,6 @@ function ensureVisibilityDefaults() {
       }
 
       const layout = baseLayout("");
-      layout.autosize = false;
-      layout.height = (typeof desiredH === "number" ? desiredH : 420);
       layout.yaxis.title = "Drawdown (bps)";
       layout.yaxis.ticksuffix = " bps";
       Plotly.react("chartDrawdown", traces, layout, { displayModeBar: false, responsive: true });
@@ -1861,7 +1894,7 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
-      layout.yaxis.tickfont = { size: 8 };
+      layout.yaxis.tickfont = { size: 8.5 };
 
       Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
@@ -2248,6 +2281,7 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       updateThemeIcon();
 
       window.addEventListener("resize", () => renderAll());
+      window.addEventListener("load", () => { setTimeout(() => resizeAllPlots(), 120); });
     }
 
     window.addEventListener("error", (e) => { appendDiag({ js_error: e.message || String(e) }); });
@@ -2265,7 +2299,9 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
         precomputeAll();
         initUI();
         renderAll();
-        setStatus(""); // sin texto visible en header
+      bindAutoResizePlots();
+      setTimeout(() => resizeAllPlots(), 200);
+      setStatus(""); // sin texto visible en header
       } catch (err) {
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
