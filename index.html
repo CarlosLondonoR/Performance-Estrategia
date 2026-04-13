@@ -312,6 +312,11 @@
   #cardGaps h3:hover { opacity: 0.92; }
   #cardGaps .chev { display:inline-block; transition: transform 0.15s ease; }
   #cardGaps:not(.collapsed) .chev { transform: rotate(90deg); }
+  /* Compactar tarjeta de Gaps cuando está colapsada */
+  #cardGaps.collapsed { padding: 6px 10px; gap: 0; }
+  #cardGaps.collapsed h3 { font-size: 13px; }
+  #cardGaps.collapsed .small { display: none; }
+
 
   .gap-table {
     border: 1px solid var(--edge);
@@ -1262,6 +1267,15 @@ function ensureVisibilityDefaults() {
     function plotDrawdown() {
       if (!window.Plotly) return;
       const idxs = getCurrentWindowIdxs();
+      const plotDiv = document.getElementById("chartDrawdown");
+      const card = document.getElementById("cardDrawdown");
+      let desiredH = null;
+      if (plotDiv && card) {
+        // Ajustar altura para que la gráfica ocupe el módulo completo (sin exceder márgenes)
+        desiredH = Math.max(320, Math.min(900, card.clientHeight - 70));
+        plotDiv.style.height = desiredH + "px";
+        plotDiv.style.minHeight = desiredH + "px";
+      }
       const x = idxs.map(i => state.dates[i]);
       const traces = [];
       const sel = selectedVectorsList();
@@ -1281,6 +1295,8 @@ function ensureVisibilityDefaults() {
       }
 
       const layout = baseLayout("");
+      layout.autosize = false;
+      layout.height = (typeof desiredH === "number" ? desiredH : 420);
       layout.yaxis.title = "Drawdown (bps)";
       layout.yaxis.ticksuffix = " bps";
       Plotly.react("chartDrawdown", traces, layout, { displayModeBar: false, responsive: true });
@@ -1845,7 +1861,7 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
-      layout.yaxis.tickfont = { size: 7 };
+      layout.yaxis.tickfont = { size: 8 };
 
       Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
