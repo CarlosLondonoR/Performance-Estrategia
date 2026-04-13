@@ -6,7 +6,7 @@
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
   <!-- Carga correcta de Plotly -->
-  ./plotly.min.jsscript>
+  <script src="./plotly.min.js"></script>
 
   <style>
     :root {
@@ -211,11 +211,11 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 4px;
-      min-height: 20px;
+      min-height: 20px; /* evitar colapsos si está vacía */
     }
     .chart-note { font-size: 12px; color: var(--muted); line-height: 1.3; max-width: 100%; }
 
-    /* ===== Leyenda personalizada (chips) ===== */
+    /* ===== Leyenda personalizada (chips) para Waterfall & ReturnBars ===== */
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
@@ -237,67 +237,9 @@
     .legend-chip.active { background: var(--chip-active); }
     .legend-chip.off   { opacity: 0.45; text-decoration: line-through; }
 
-    /* ===== Tabla de gaps del vector foco ===== */
-    .table-wrap {
-      width: 100%;
-      overflow: auto;
-      border: 1px solid var(--grid);
-      border-radius: 10px;
-      background: var(--panel);
-    }
-
-    .focus-table {
-      width: max-content;
-      min-width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 12px;
-    }
-
-    .focus-table th,
-    .focus-table td {
-      padding: 6px 8px;
-      border-right: 1px solid var(--grid);
-      border-bottom: 1px solid var(--grid);
-      white-space: nowrap;
-      vertical-align: middle;
-    }
-
-    .focus-table thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: var(--panel);
-      color: var(--text);
-    }
-
-    .focus-table thead tr:first-child th {
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .focus-table thead tr:nth-child(2) th {
-      font-weight: 600;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .focus-table .left { text-align: left !important; }
-    .focus-table .center { text-align: center !important; }
-    .focus-table tbody td { text-align: right; }
-
-    .focus-table .subrange-head { background: var(--chip); }
-    .focus-table .total-row td {
-      font-weight: 700;
-      background: var(--chip);
-    }
-
-    .focus-table .pos { color: var(--ok); }
-    .focus-table .neg { color: var(--bad); }
-
     /* ===== POPUP anclado al botón “Elegir vectores…” ===== */
     .popover {
-      position: fixed;
+      position: fixed; /* se posiciona con coordenadas de viewport */
       z-index: 300;
       background: var(--panel);
       color: var(--text);
@@ -306,7 +248,7 @@
       box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 2px 0 var(--grid) inset;
       width: min(520px, 92vw);
       max-height: 62vh;
-      display: none;
+      display: none;            /* visible solo cuando se abre */
       overflow: hidden;
     }
     .popover.open { display: block; }
@@ -323,7 +265,7 @@
     .popover .body {
       padding: 10px 12px;
       overflow: auto;
-      max-height: calc(62vh - 92px);
+      max-height: calc(62vh - 92px); /* header + footer aprox. */
     }
     .popover .grid {
       display: grid;
@@ -401,7 +343,7 @@
         <div class="control">
           <label>Vector foco (para descomposición & detalle)</label>
           <select id="vectorFocus"></select>
-          <span class="small">Afecta Waterfall, Descomposición, Heatmap, Barras, Histograma y Gaps.</span>
+          <span class="small">Afecta Waterfall, Descomposición, Heatmap, Barras y Histograma.</span>
         </div>
 
         <div class="control">
@@ -491,11 +433,12 @@
         </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupRV</button>
-            groupRF</button>
-            groupFX</button>
+            <!-- Filtros de grupo (restaurados) -->
+            <button class="btn ghost small" data-action="group" data-chart="indexed" data-group="ALL">Todos</button>
+            <button class="btn ghost small" data-action="group" data-chart="indexed" data-group="ACTIVE">Vigentes</button>
+            <button class="btn ghost small" data-action="group" data-chart="indexed" data-group="RV">RV</button>
+            <button class="btn ghost small" data-action="group" data-chart="indexed" data-group="RF">RF</button>
+            <button class="btn ghost small" data-action="group" data-chart="indexed" data-group="FX">FX</button>
           </div>
           <div class="chart-note">La leyenda no afecta los filtros. Usa “Todos” para restaurar todas las series.</div>
         </div>
@@ -511,19 +454,21 @@
         </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupRV</button>
-            groupRF</button>
-            groupFX</button>
+            <!-- Filtros de grupo (restaurados) -->
+            <button class="btn ghost small" data-action="group" data-chart="returnBars" data-group="ALL">Todos</button>
+            <button class="btn ghost small" data-action="group" data-chart="returnBars" data-group="ACTIVE">Vigentes</button>
+            <button class="btn ghost small" data-action="group" data-chart="returnBars" data-group="RV">RV</button>
+            <button class="btn ghost small" data-action="group" data-chart="returnBars" data-group="RF">RF</button>
+            <button class="btn ghost small" data-action="group" data-chart="returnBars" data-group="FX">FX</button>
           </div>
           <div class="chart-note">Usa la leyenda (chips) para mostrar/ocultar.</div>
         </div>
         <div id="chartReturnBars" class="plot"></div>
+        <!-- Leyenda de chips unificada -->
         <div id="rbLegend" class="chart-legend" aria-label="Leyenda Retorno acumulado (clic para ocultar/mostrar)"></div>
       </div>
 
-      <!-- 4) Waterfall — FULL -->
+      <!-- 4) Waterfall — FULL (con leyenda inferior tipo chips) -->
       <div class="card span-2" id="cardWaterfall">
         <h3>
           <span>Waterfall — Contribución por asset class</span>
@@ -532,11 +477,12 @@
         </h3>
         <div class="chart-toolbar">
           <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupRV</button>
-            groupRF</button>
-            groupFX</button>
+            <!-- Filtros de grupo (restaurados) -->
+            <button class="btn ghost small" data-action="group" data-chart="waterfall" data-group="ALL">Todos</button>
+            <button class="btn ghost small" data-action="group" data-chart="waterfall" data-group="ACTIVE">Vigentes</button>
+            <button class="btn ghost small" data-action="group" data-chart="waterfall" data-group="RV">RV</button>
+            <button class="btn ghost small" data-action="group" data-chart="waterfall" data-group="RF">RF</button>
+            <button class="btn ghost small" data-action="group" data-chart="waterfall" data-group="FX">FX</button>
           </div>
           <div class="chart-note">Usa la leyenda (chips) para mostrar/ocultar.</div>
         </div>
@@ -551,29 +497,6 @@
           <span class="small" id="sfxDecomposition"></span>
         </h3>
         <div id="chartDecomposition" class="plot"></div>
-      </div>
-
-      <!-- 5.1) NUEVO MÓDULO: Gaps del vector foco -->
-      <div class="card span-2" id="cardFocusGaps">
-        <h3>
-          <span>Gaps del vector foco por sub rangos</span>
-          <span class="small" id="sfxFocusGaps"></span>
-          <span class="small" id="gapVector"></span>
-        </h3>
-        <div class="chart-toolbar">
-          <div class="btn-group">
-            groupTodos</button>
-            groupVigentes</button>
-            groupRV</button>
-            groupRF</button>
-            groupFX</button>
-          </div>
-          <div class="chart-note">
-            Se detectan sub rangos cuando cambian los gaps del vector foco. En cada sub rango se muestra Gap, Retorno (Σ retornos diarios) y Alpha (Σ diaria de gap × retorno).
-          </div>
-        </div>
-        <div id="focusGapsTable" class="table-wrap"></div>
-        <div id="gapsLegend" class="chart-legend" aria-label="Leyenda Gaps del vector foco (clic para ocultar/mostrar)"></div>
       </div>
 
       <!-- Restantes en parejas -->
@@ -612,7 +535,7 @@
     </section>
   </div>
 
-  <!-- ===== POPUP ligero anclado al botón ===== -->
+  <!-- ===== POPUP ligero anclado al botón (reemplaza al modal previo) ===== -->
   <div id="vectorPopover" class="popover" role="dialog" aria-modal="false" aria-labelledby="vpTitle">
     <header>
       <strong id="vpTitle">Selecciona vectores</strong>
@@ -623,7 +546,7 @@
     </header>
     <div class="body">
       <input id="vpSearch" class="search" type="search" placeholder="Filtrar por nombre…" />
-      <div id="vpList" class="grid"></div>
+      <div id="vpList" class="grid"><!-- checkboxes dinámicos --></div>
     </div>
     <div class="footer">
       <span class="small">Seleccionados: <strong id="vpCount">0</strong></span>
@@ -640,7 +563,6 @@
     // =============================
     const ANN_FACTOR = Math.sqrt(252);
     const IGNORED_TRACK_COLS = new Set(["eurusd_spot", "usdjpy_spot", "Duracion"]);
-    const EPS = 1e-12;
 
     const TICKER_MAP = {
       "us_index": { asset: "EE. UU.", group: "RV" },
@@ -691,7 +613,6 @@
     }
 
     const toISODate = d => d.toISOString().slice(0, 10);
-
     function toNumberCell(s) {
       if (s === null || s === undefined) return NaN;
       const v = String(s).replace(",", ".").trim();
@@ -699,12 +620,11 @@
       const x = Number(v);
       return Number.isNaN(x) ? NaN : x;
     }
-
-    const toBps = x => Number.isFinite(x) ? x * 10000 : NaN;
+    const toBps  = x => Number.isFinite(x) ? x * 10000 : NaN;
     const toBpsArray = arr => arr.map(toBps);
-    const fmtBps = (x, d = 0) => Number.isFinite(x) ? `${x.toFixed(d)} bps` : "—";
-    const fmtPct = (x, d = 2) => Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : "—";
-    const fmtNum = (x, d = 6) => Number.isFinite(x) ? x.toFixed(d) : "—";
+    const fmtBps = (x,d=0)=> Number.isFinite(x)? `${x.toFixed(d)} bps`:"—";
+    const fmtPct = (x,d=2)=> Number.isFinite(x)? `${(x*100).toFixed(d)}%`:"—";
+    const fmtNum = (x,d=6)=> Number.isFinite(x)? x.toFixed(d):"—";
 
     function parseCSV(text, delimiter = ";") {
       const cleaned = text.replace(/^\uFEFF/, "");
@@ -739,6 +659,7 @@
       return { headers, rows };
     }
 
+    // No-op si el span ya no existe (quitado del header)
     function setStatus(text) {
       const el = document.getElementById("loadStatus");
       if (el) el.textContent = text;
@@ -797,68 +718,44 @@
       visibility: {
         indexed: new Set(),
         returnBars: new Set(),
-        waterfall: new Set(),
-        gapsTable: new Set()
+        waterfall: new Set()
       }
     };
 
     function getOrderedReturnAssets() {
       return RETURN_ASSET_ORDER.filter(a => Object.prototype.hasOwnProperty.call(state.returnsByAsset, a));
     }
-
     function getFocusVectorAssetsOrdered() {
       const v = state.focusVector;
       if (!v || !state.vectors[v]) return [];
       const assetsInVector = new Set(Object.keys(state.vectors[v].gapsByAsset));
       return RETURN_ASSET_ORDER.filter(a => assetsInVector.has(a));
     }
-
-    function getFocusVectorAssetsCsvOrdered() {
-      const v = state.focusVector;
-      if (!v || !state.vectors[v]) return [];
-      const order = state.vectors[v].assetOrder || [];
-      return order.filter(a => Object.prototype.hasOwnProperty.call(state.vectors[v].gapsByAsset, a));
-    }
-
     function ensureVisibilityDefaults() {
       const allReturnAssets = getOrderedReturnAssets();
-      if (!state.visibility.indexed.size) state.visibility.indexed = new Set(allReturnAssets);
-      if (!state.visibility.returnBars.size) state.visibility.returnBars = new Set(allReturnAssets);
-
+      if (!state.visibility.indexed.size)     state.visibility.indexed     = new Set(allReturnAssets);
+      if (!state.visibility.returnBars.size)  state.visibility.returnBars  = new Set(allReturnAssets);
       const wfAssets = getFocusVectorAssetsOrdered();
-      if (!state.visibility.waterfall.size) state.visibility.waterfall = new Set(wfAssets);
-
-      const gapAssets = getFocusVectorAssetsCsvOrdered();
-      if (!state.visibility.gapsTable.size) state.visibility.gapsTable = new Set(gapAssets);
+      if (!state.visibility.waterfall.size)   state.visibility.waterfall   = new Set(wfAssets);
     }
-
     function setChartGroupVisibility(chartKey, group) {
       const filterActive = (arr) => arr.filter(a => !INACTIVE_FOR_ACTIVE_VIEW.has(a));
-
       if (chartKey === "waterfall") {
         const all = getFocusVectorAssetsOrdered();
         if (group === "ALL") state.visibility.waterfall = new Set(all);
         else if (group === "ACTIVE") state.visibility.waterfall = new Set(filterActive(all));
         else state.visibility.waterfall = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
-      } else if (chartKey === "gapsTable") {
-        const all = getFocusVectorAssetsCsvOrdered();
-        if (group === "ALL") state.visibility.gapsTable = new Set(all);
-        else if (group === "ACTIVE") state.visibility.gapsTable = new Set(filterActive(all));
-        else state.visibility.gapsTable = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
       } else {
         const all = getOrderedReturnAssets();
         if (group === "ALL") state.visibility[chartKey] = new Set(all);
         else if (group === "ACTIVE") state.visibility[chartKey] = new Set(filterActive(all));
         else state.visibility[chartKey] = new Set(all.filter(a => ASSETS_BY_GROUP[group].includes(a)));
       }
-
       renderAll();
     }
-
     function toggleChartAsset(chartKey, asset) {
       const current = state.visibility[chartKey] || new Set();
-      if (current.has(asset)) current.delete(asset);
-      else current.add(asset);
+      if (current.has(asset)) current.delete(asset); else current.add(asset);
       state.visibility[chartKey] = current;
       renderAll();
     }
@@ -937,20 +834,15 @@
 
       const vectors = {};
       const vectorCols = gaps.headers.slice(1);
-
       for (const col of vectorCols) {
         if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
-        if (lastUnd <= 0 || lastUnd === col.length - 1) {
-          console.warn("Columna gaps sin separador válido '_':", col);
-          continue;
-        }
+        if (lastUnd <= 0 || lastUnd === col.length - 1) { console.warn("Columna gaps sin separador válido '_':", col); continue; }
 
         const assetName = col.slice(0, lastUnd);
         const vectorName = col.slice(lastUnd + 1);
 
-        if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {}, assetOrder: [] };
-        if (!vectors[vectorName].assetOrder.includes(assetName)) vectors[vectorName].assetOrder.push(assetName);
+        if (!vectors[vectorName]) vectors[vectorName] = { gapsByAsset: {} };
 
         const arr = new Float64Array(commonISO.length);
         for (let k = 0; k < commonISO.length; k++) {
@@ -1065,13 +957,11 @@
       }
       return idx;
     }
-
     function idxWindowByKey(key) {
       const dates = state.dates;
       const last = dates[dates.length - 1];
       let from = null;
       const to = last;
-
       const addMonths = (date, m) => {
         const d = new Date(date.getTime());
         const origD = d.getUTCDate();
@@ -1079,7 +969,6 @@
         if (d.getUTCDate() !== origD) d.setUTCDate(0);
         return d;
       };
-
       switch (key) {
         case "1M": from = addMonths(last, -1); break;
         case "3M": from = addMonths(last, -3); break;
@@ -1091,28 +980,24 @@
         case "ALL": from = dates[0]; break;
         default: from = dates[0];
       }
-
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
     }
-
     function vectorSubarrayByIdx(typedArr, idxs) {
       const out = new Float64Array(idxs.length);
       for (let k = 0; k < idxs.length; k++) out[k] = typedArr[idxs[k]];
       return out;
     }
-
     function cumulativeSum(arr) {
       const out = new Float64Array(arr.length);
       let acc = 0;
       for (let i = 0; i < arr.length; i++) {
         const v = arr[i];
         if (Number.isFinite(v)) { acc += v; out[i] = acc; }
-        else out[i] = NaN;
+        else { out[i] = NaN; }
       }
       return out;
     }
-
     function drawdownFromCumulative(cum) {
       const out = new Float64Array(cum.length);
       let peak = -Infinity;
@@ -1124,13 +1009,11 @@
       }
       return out;
     }
-
     function arrayMean(arr) {
       let s = 0, c = 0;
       for (const v of arr) if (Number.isFinite(v)) { s += v; c++; }
       return c ? s / c : NaN;
     }
-
     function arrayStd(arr) {
       const m = arrayMean(arr);
       if (!Number.isFinite(m)) return NaN;
@@ -1138,15 +1021,12 @@
       for (const v of arr) if (Number.isFinite(v)) { const d = v - m; s += d * d; c++; }
       return c > 1 ? Math.sqrt(s / (c - 1)) : NaN;
     }
-
     function downsideStd(arr) {
       const neg = arr.filter(v => Number.isFinite(v) && v < 0);
       if (neg.length <= 1) return NaN;
-      let s = 0;
-      for (const v of neg) s += v * v;
+      let s = 0; for (const v of neg) s += v * v;
       return Math.sqrt(s / (neg.length - 1));
     }
-
     function maxDrawdown(cum) {
       let peak = -Infinity, maxDD = 0;
       for (const v of cum) {
@@ -1156,7 +1036,6 @@
       }
       return -maxDD;
     }
-
     function metricsForSeries(alphaWindow) {
       const cum = cumulativeSum(alphaWindow);
       const vol = arrayStd(alphaWindow);
@@ -1167,30 +1046,22 @@
       const Sortino = (Number.isFinite(mu) && Number.isFinite(dstd) && dstd > 0) ? (mu / dstd) * ANN_FACTOR : NaN;
       const hit = (() => {
         let pos = 0, c = 0;
-        for (const v of alphaWindow) {
-          if (Number.isFinite(v)) {
-            if (v > 0) pos++;
-            c++;
-          }
-        }
+        for (const v of alphaWindow) { if (Number.isFinite(v)) { if (v > 0) pos++; c++; } }
         return c ? (pos / c) : NaN;
       })();
       const MDD = maxDrawdown(cum);
       const total = cum[cum.length - 1];
       return { total, annVol, IR, Sortino, hit, MDD };
     }
-
-    const sumAtIdx = (arr, idxs) => idxs.reduce((s, i) => {
-      const v = arr[i];
-      return Number.isFinite(v) ? s + v : s;
-    }, 0);
+    const sumAtIdx = (arr, idxs) => idxs.reduce((s,i)=> {
+      const v = arr[i]; return Number.isFinite(v) ? s+v : s;
+    },0);
 
     function getCurrentWindowIdxs() {
       if (state.windowKey && state.windowKey !== "ALL" && state.windowKey !== "CUSTOM") return idxWindowByKey(state.windowKey);
       if (state.dateFrom || state.dateTo) return idxWindowByDates(state.dates, state.dateFrom, state.dateTo);
       return idxWindowByKey("ALL");
     }
-
     const selectedVectorsList = () => state.selectedVectors.length ? state.selectedVectors : [];
 
     function fmtDateHuman(d) {
@@ -1200,31 +1071,18 @@
       const yy = d.getUTCFullYear();
       return `${dd}/${mm}/${yy}`;
     }
-
     function getWindowLabel() {
       const quick = new Set(["1M","3M","6M","YTD","1Y","2Y","3Y","ALL"]);
       if (quick.has(state.windowKey)) return state.windowKey === "ALL" ? "Desde inicio" : state.windowKey;
       const from = state.dateFrom ? fmtDateHuman(state.dateFrom) : fmtDateHuman(state.dates[0]);
-      const to = state.dateTo ? fmtDateHuman(state.dateTo) : fmtDateHuman(state.dates[state.dates.length - 1]);
+      const to   = state.dateTo ? fmtDateHuman(state.dateTo) : fmtDateHuman(state.dates[state.dates.length - 1]);
       return `${from} - ${to}`;
     }
-
     function updateTitleSuffixes() {
       const label = getWindowLabel();
-      const set = (id) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = `(${label})`;
-      };
-      set("sfxCumulative");
-      set("sfxIndexed");
-      set("sfxReturnBars");
-      set("sfxWaterfall");
-      set("sfxDecomposition");
-      set("sfxFocusGaps");
-      set("sfxDrawdown");
-      set("sfxHeatmap");
-      set("sfxBars");
-      set("sfxHist");
+      const set = (id) => { const el = document.getElementById(id); if (el) el.textContent = `(${label})`; };
+      set("sfxCumulative"); set("sfxIndexed"); set("sfxReturnBars"); set("sfxWaterfall"); set("sfxDecomposition");
+      set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist");
     }
 
     // =============================
@@ -1237,7 +1095,7 @@
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text },
-        margin: { l: 55, r: 20, t: 30, b: 80 },
+        margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
         hovermode: "x unified",
         xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
         yaxis: { showgrid: true, gridcolor: c.grid, zeroline: true, zerolinecolor: c.grid, automargin: true },
@@ -1245,13 +1103,11 @@
         legend: { orientation: "h", x: 0, y: -0.2, xanchor: "left", yanchor: "top" }
       };
     }
-
     function palette(i) {
       const colors = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2",
                       "#ca8a04", "#ef4444", "#22c55e", "#60a5fa", "#f472b6", "#84cc16"];
       return colors[i % colors.length];
     }
-
     function bindLegendToggle(chartId, chartKey) {
       const gd = document.getElementById(chartId);
       if (!gd || gd.__legendToggleBound || typeof gd.on !== "function") return;
@@ -1260,7 +1116,7 @@
         const asset = trace?.name;
         if (!asset) return false;
         toggleChartAsset(chartKey, asset);
-        return false;
+        return false; // prevenimos el toggle nativo, usamos nuestro estado
       });
       gd.__legendToggleBound = true;
     }
@@ -1281,18 +1137,11 @@
         const aw = vectorSubarrayByIdx(alpha, idxs);
         const awBps = toBpsArray(Array.from(aw));
         const cum = cumulativeSum(Float64Array.from(awBps));
-        let base = 0;
-        for (let k = 0; k < cum.length; k++) {
-          if (Number.isFinite(cum[k])) { base = cum[k]; break; }
-        }
+        let base = 0; for (let k = 0; k < cum.length; k++) { if (Number.isFinite(cum[k])) { base = cum[k]; break; } }
         const yShift = cum.map(val => Number.isFinite(val) ? (val - base) : NaN);
 
         traces.push({
-          type: "scatter",
-          mode: "lines",
-          name: v,
-          x,
-          y: yShift,
+          type: "scatter", mode: "lines", name: v, x, y: yShift,
           line: { color: palette(i), width: 2 },
           customdata: Array.from(awBps),
           hovertemplate: "%{x|%d-%m-%Y}<br>Alpha diario: %{customdata:.0f} bps<br>Cumul.: %{y:.0f} bps<extra>" + v + "</extra>"
@@ -1320,11 +1169,7 @@
         const dd = drawdownFromCumulative(cum);
 
         traces.push({
-          type: "scatter",
-          mode: "lines",
-          name: v,
-          x,
-          y: Array.from(dd),
+          type: "scatter", mode: "lines", name: v, x, y: Array.from(dd),
           line: { color: palette(i), width: 2 },
           hovertemplate: "%{x|%d-%m-%Y}<br>Drawdown: %{y:.0f} bps<extra>" + v + "</extra>"
         });
@@ -1349,7 +1194,6 @@
       }
       return out;
     }
-
     function computeAccumulatedReturn(asset, idxs) {
       const returns = state.returnsByAsset[asset];
       if (!returns || !idxs.length) return NaN;
@@ -1377,11 +1221,8 @@
         const series = computeIndexedSeries(asset, idxs);
         const dailyReturns = idxs.map((ix, j) => j === 0 ? NaN : state.returnsByAsset[asset][ix]);
         return {
-          type: "scatter",
-          mode: "lines",
-          name: asset,
-          x: idxs.map(i => state.dates[i]),
-          y: series,
+          type: "scatter", mode: "lines", name: asset,
+          x: idxs.map(i => state.dates[i]), y: series,
           line: { width: 2, color: palette(i) },
           customdata: dailyReturns,
           hovertemplate: "%{x|%d-%m-%Y}<br>Retorno diario: %{customdata:.2%}<br>Índice: %{y:.2f}<extra>" + asset + "</extra>"
@@ -1395,6 +1236,7 @@
       bindLegendToggle("chartIndexed", "indexed");
     }
 
+    /* ===== Leyenda (chips) para Retorno acumulado — igual a Waterfall ===== */
     function renderReturnBarsLegend(allAssets, visibleSet) {
       const cont = document.getElementById("rbLegend");
       if (!cont) return;
@@ -1410,14 +1252,16 @@
       });
       cont.appendChild(frag);
 
+      // Toggle de visibilidad con estado centralizado
       cont.onclick = (e) => {
         const btn = e.target.closest(".legend-chip");
         if (!btn) return;
         const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("returnBars", asset);
+        toggleChartAsset("returnBars", asset); // re-renderAll(); legend se reconstruye
       };
     }
 
+    /* ===== 3) Barras de retorno — con leyenda inferior (chips) ===== */
     function renderReturnBarsChart() {
       if (!window.Plotly) return;
 
@@ -1427,6 +1271,8 @@
       const visibleAssets = allAssets.filter(a => visible.has(a));
 
       const plotDiv = document.getElementById("chartReturnBars");
+
+      // Siempre renderiza la leyenda de chips para mantener formato
       renderReturnBarsLegend(allAssets, visible);
 
       if (!visibleAssets.length || !idxs.length) {
@@ -1438,6 +1284,7 @@
         return;
       }
 
+      // Datos ordenados por retorno acumulado
       const data = visibleAssets.map(asset => ({
         asset,
         ret: computeAccumulatedReturn(asset, idxs),
@@ -1460,6 +1307,7 @@
         hovertemplate: "<b>%{y}</b><br>Retorno acumulado: %{x:.2%}<extra></extra>"
       }));
 
+      // Altura del gráfico (consistente)
       const PER_BAR = 22;
       const PLOT_MIN = 360;
       const PLOT_MAX = 820;
@@ -1472,7 +1320,7 @@
       const layout = baseLayout("");
       layout.autosize = false;
       layout.height = plotHeight;
-      layout.showlegend = false;
+      layout.showlegend = false;                // usamos chips, no leyenda nativa
       layout.xaxis.title = "Retorno acumulado";
       layout.xaxis.tickformat = ".0%";
       layout.xaxis.zeroline = true;
@@ -1488,10 +1336,11 @@
       layout.margin.l = 220;
       layout.margin.r = 150;
       layout.margin.t = 30;
-      layout.margin.b = 60;
+      layout.margin.b = 60;                     // menos espacio porque no hay leyenda de Plotly
       layout.bargap = 0.42;
 
       Plotly.react("chartReturnBars", traces, layout, { displayModeBar: false, responsive: true });
+      // (No usamos bindLegendToggle aquí; los chips manejan la visibilidad)
     }
 
     function aggregateContribByAsset(vectorName, idxs) {
@@ -1499,18 +1348,15 @@
       const agg = {};
       for (const a of Object.keys(daily)) {
         let s = 0;
-        for (const i of idxs) {
-          const v = daily[a][i];
-          if (Number.isFinite(v)) s += v;
-        }
+        for (const i of idxs) { const v = daily[a][i]; if (Number.isFinite(v)) s += v; }
         agg[a] = s;
       }
       return agg;
     }
 
+    /* ========== Waterfall — leyenda (chips) ========== */
     function renderWaterfallLegend(allAssets, visibleSet) {
       const cont = document.getElementById("wfLegend");
-      if (!cont) return;
       cont.innerHTML = "";
       const frag = document.createDocumentFragment();
       allAssets.forEach(a => {
@@ -1527,7 +1373,7 @@
         const btn = e.target.closest(".legend-chip");
         if (!btn) return;
         const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("waterfall", asset);
+        toggleChartAsset("waterfall", asset); // re-renderAll(); legend se reconstruye
       };
     }
 
@@ -1551,6 +1397,7 @@
       const visible = state.visibility.waterfall || new Set(allFocusAssets);
       const orderAssets = allFocusAssets.filter(a => visible.has(a));
 
+      // Construir leyenda inferior (chips)
       renderWaterfallLegend(allFocusAssets, visible);
 
       if (!orderAssets.length || !idxs.length) {
@@ -1563,7 +1410,6 @@
       const x = orderAssets.slice();
       const y = orderAssets.map(a => toBps(agg[a]));
       const measures = new Array(x.length).fill("relative");
-
       x.push("Total");
       const total = y.reduce((s, val) => s + val, 0);
       y.push(total);
@@ -1571,21 +1417,19 @@
 
       const trace = {
         type: "waterfall",
-        x,
-        y,
-        measure: measures,
+        x, y, measure: measures,
         text: y.map(vv => fmtNum(vv, 0)),
         textposition: "auto",
         textfont: { size: 11 },
         connector: { line: { color: getThemeColors().grid } },
         decreasing: { marker: { color: "#ef4444" } },
         increasing: { marker: { color: "#16a34a" } },
-        totals: { marker: { color: "#2563eb" } },
+        totals:    { marker: { color: "#2563eb" } },
         hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
       };
 
       const layout = baseLayout("");
-      layout.showlegend = false;
+      layout.showlegend = false; // usamos leyenda personalizada
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
       layout.margin.t = 30;
@@ -1593,6 +1437,7 @@
       layout.margin.l = 60;
       layout.margin.r = 20;
 
+      // Altura moderada
       const nBars = x.length;
       const base = 340;
       const step = 18;
@@ -1624,210 +1469,16 @@
       });
 
       const x = components.map(c => c.v);
-      const trAlloc = { type: "bar", name: "Allocation", x, y: components.map(c => c.sA), marker: { color: "#60a5fa" }, hovertemplate: "Allocation: %{y:.0f} bps<extra></extra>" };
-      const trSelRV = { type: "bar", name: "Selection RV", x, y: components.map(c => c.sRV), marker: { color: "#34d399" }, hovertemplate: "Selection RV: %{y:.0f} bps<extra></extra>" };
-      const trSelRF = { type: "bar", name: "Selection RF", x, y: components.map(c => c.sRF), marker: { color: "#f59e0b" }, hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>" };
-      const trFX = { type: "bar", name: "FX", x, y: components.map(c => c.sFX), marker: { color: "#a78bfa" }, hovertemplate: "FX: %{y:.0f} bps<extra></extra>" };
+      const trAlloc = { type: "bar", name: "Allocation",  x, y: components.map(c => c.sA),  marker: { color: "#60a5fa" }, hovertemplate: "Allocation: %{y:.0f} bps<extra></extra>" };
+      const trSelRV = { type: "bar", name: "Selection RV",x, y: components.map(c => c.sRV), marker: { color: "#34d399" }, hovertemplate: "Selection RV: %{y:.0f} bps<extra></extra>" };
+      const trSelRF = { type: "bar", name: "Selection RF",x, y: components.map(c => c.sRF), marker: { color: "#f59e0b" }, hovertemplate: "Selection RF: %{y:.0f} bps<extra></extra>" };
+      const trFX   = { type: "bar", name: "FX",          x, y: components.map(c => c.sFX), marker: { color: "#a78bfa" }, hovertemplate: "FX: %{y:.0f} bps<extra></extra>" };
 
       const layout = baseLayout("");
       layout.barmode = "stack";
       layout.yaxis.title = "Contribución acumulada (bps)";
       layout.yaxis.ticksuffix = " bps";
-
       Plotly.react("chartDecomposition", [trAlloc, trSelRV, trSelRF, trFX], layout, { displayModeBar: false, responsive: true });
-    }
-
-    // =============================
-    // NUEVO: TABLA DE GAPS DEL VECTOR FOCO
-    // =============================
-    function renderGapsLegend(allAssets, visibleSet) {
-      const cont = document.getElementById("gapsLegend");
-      if (!cont) return;
-      cont.innerHTML = "";
-      const frag = document.createDocumentFragment();
-
-      allAssets.forEach(a => {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "legend-chip " + (visibleSet.has(a) ? "active" : "off");
-        chip.textContent = a;
-        chip.setAttribute("data-asset", a);
-        frag.appendChild(chip);
-      });
-
-      cont.appendChild(frag);
-
-      cont.onclick = (e) => {
-        const btn = e.target.closest(".legend-chip");
-        if (!btn) return;
-        const asset = btn.getAttribute("data-asset");
-        toggleChartAsset("gapsTable", asset);
-      };
-    }
-
-    function computeGapSubranges(vectorName, idxs) {
-      if (!vectorName || !state.vectors[vectorName] || !idxs.length) return [];
-      const gapsByAsset = state.vectors[vectorName].gapsByAsset;
-      const assets = (state.vectors[vectorName].assetOrder || []).filter(a => Object.prototype.hasOwnProperty.call(gapsByAsset, a));
-      if (!assets.length) return [];
-
-      const ranges = [];
-      let segStartPos = 0;
-
-      const hasChanged = (prevIdx, curIdx) => {
-        for (const a of assets) {
-          const prev = gapsByAsset[a]?.[prevIdx] ?? 0;
-          const cur = gapsByAsset[a]?.[curIdx] ?? 0;
-          if (Math.abs(prev - cur) > EPS) return true;
-        }
-        return false;
-      };
-
-      for (let p = 1; p < idxs.length; p++) {
-        if (hasChanged(idxs[p - 1], idxs[p])) {
-          const segIdxs = idxs.slice(segStartPos, p);
-          ranges.push({
-            startIdx: segIdxs[0],
-            endIdx: segIdxs[segIdxs.length - 1],
-            idxs: segIdxs
-          });
-          segStartPos = p;
-        }
-      }
-
-      const lastSeg = idxs.slice(segStartPos);
-      if (lastSeg.length) {
-        ranges.push({
-          startIdx: lastSeg[0],
-          endIdx: lastSeg[lastSeg.length - 1],
-          idxs: lastSeg
-        });
-      }
-
-      return ranges;
-    }
-
-    function renderFocusGapsTable() {
-      const wrap = document.getElementById("focusGapsTable");
-      const gapVector = document.getElementById("gapVector");
-      if (!wrap) return;
-
-      const v = state.focusVector;
-      if (!v || !state.vectors[v] || !state.perVector[v]) {
-        wrap.innerHTML = `<div class="small" style="padding:12px">Selecciona un vector foco.</div>`;
-        if (gapVector) gapVector.textContent = "";
-        renderGapsLegend([], new Set());
-        return;
-      }
-
-      const idxs = getCurrentWindowIdxs();
-      const allAssets = getFocusVectorAssetsCsvOrdered();
-      const visible = state.visibility.gapsTable || new Set(allAssets);
-      const visibleAssets = allAssets.filter(a => visible.has(a));
-
-      renderGapsLegend(allAssets, visible);
-      if (gapVector) gapVector.textContent = `Vector: ${v}`;
-
-      if (!idxs.length) {
-        wrap.innerHTML = `<div class="small" style="padding:12px">No hay fechas visibles para la ventana seleccionada.</div>`;
-        return;
-      }
-
-      if (!visibleAssets.length) {
-        wrap.innerHTML = `<div class="small" style="padding:12px">No hay activos visibles para mostrar.</div>`;
-        return;
-      }
-
-      const subranges = computeGapSubranges(v, idxs);
-      if (!subranges.length) {
-        wrap.innerHTML = `<div class="small" style="padding:12px">No hay sub rangos para mostrar.</div>`;
-        return;
-      }
-
-      const gapsByAsset = state.vectors[v].gapsByAsset;
-      const contribDaily = state.perVector[v].contribByAssetDaily;
-
-      const retSumFor = (asset, segIdxs) => {
-        const rets = state.returnsByAsset[asset];
-        if (!rets) return NaN;
-        let s = 0, c = 0;
-        for (const i of segIdxs) {
-          const val = rets[i];
-          if (Number.isFinite(val)) { s += val; c++; }
-        }
-        return c ? s : NaN;
-      };
-
-      const alphaSumFor = (asset, segIdxs) => {
-        const arr = contribDaily[asset];
-        if (!arr) return NaN;
-        let s = 0, c = 0;
-        for (const i of segIdxs) {
-          const val = arr[i];
-          if (Number.isFinite(val)) { s += val; c++; }
-        }
-        return c ? s : NaN;
-      };
-
-      const html = [];
-      html.push(`<table class="focus-table">`);
-      html.push(`<thead>`);
-      html.push(`<tr>`);
-      html.push(`<th rowspan="2" class="left">Asset class</th>`);
-      html.push(`<th rowspan="2" class="center">Grupo</th>`);
-
-      subranges.forEach((seg, k) => {
-        const label = `${fmtDateHuman(state.dates[seg.startIdx])} → ${fmtDateHuman(state.dates[seg.endIdx])}`;
-        html.push(`<th colspan="3" class="subrange-head">Sub rango ${k + 1}<br><span class="small">${label}</span></th>`);
-      });
-
-      html.push(`</tr>`);
-      html.push(`<tr>`);
-      subranges.forEach(() => {
-        html.push(`<th>Gap</th><th>Retorno (Σ)</th><th>Alpha</th>`);
-      });
-      html.push(`</tr>`);
-      html.push(`</thead>`);
-
-      html.push(`<tbody>`);
-      visibleAssets.forEach(asset => {
-        const group = state.groupsByAsset[asset] || "—";
-        html.push(`<tr>`);
-        html.push(`<td class="left">${asset}</td>`);
-        html.push(`<td class="center">${group}</td>`);
-
-        subranges.forEach(seg => {
-          const gap = gapsByAsset[asset]?.[seg.startIdx];
-          const ret = retSumFor(asset, seg.idxs);
-          const alpha = alphaSumFor(asset, seg.idxs);
-          const alphaClass = Number.isFinite(alpha) ? (alpha >= 0 ? "pos" : "neg") : "";
-
-          html.push(`<td>${fmtBps(toBps(gap), 0)}</td>`);
-          html.push(`<td>${fmtPct(ret, 2)}</td>`);
-          html.push(`<td class="${alphaClass}">${fmtBps(toBps(alpha), 0)}</td>`);
-        });
-
-        html.push(`</tr>`);
-      });
-
-      html.push(`<tr class="total-row">`);
-      html.push(`<td class="left">Total alpha visible</td>`);
-      html.push(`<td class="center">—</td>`);
-
-      subranges.forEach(seg => {
-        let totalAlpha = 0;
-        for (const asset of visibleAssets) {
-          const alpha = alphaSumFor(asset, seg.idxs);
-          if (Number.isFinite(alpha)) totalAlpha += alpha;
-        }
-        html.push(`<td>—</td><td>—</td><td>${fmtBps(toBps(totalAlpha), 0)}</td>`);
-      });
-
-      html.push(`</tr>`);
-      html.push(`</tbody>`);
-      html.push(`</table>`);
-
-      wrap.innerHTML = html.join("");
     }
 
     function groupContribByMonthAndAsset(vectorName, idxs) {
@@ -1838,10 +1489,7 @@
       for (const i of idxs) {
         const d = state.dates[i];
         const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-        if (!keyToIdx.has(key)) {
-          keyToIdx.set(key, monthKeys.length);
-          monthKeys.push(key);
-        }
+        if (!keyToIdx.has(key)) { keyToIdx.set(key, monthKeys.length); monthKeys.push(key); }
       }
 
       const assetList = Object.keys(daily);
@@ -1871,7 +1519,6 @@
         Plotly.react("chartHeatmap", [], emptyLayout("Selecciona un vector foco"), { displayModeBar: false, responsive: true });
         return;
       }
-
       const idxs = getCurrentWindowIdxs();
       if (!idxs.length) {
         Plotly.react("chartHeatmap", [], emptyLayout("No hay fechas visibles para la ventana seleccionada"), { displayModeBar: false, responsive: true });
@@ -1882,11 +1529,7 @@
       const zBps = z.map(row => row.map(val => toBps(val)));
 
       const trace = {
-        type: "heatmap",
-        x,
-        y,
-        z: zBps,
-        zmid: 0,
+        type: "heatmap", x, y, z: zBps, zmid: 0,
         colorscale: [[0.0, "#dc2626"], [0.5, "#f3f4f6"], [1.0, "#16a34a"]],
         colorbar: { title: "bps" },
         hovertemplate: "Mes: %{x}<br>Asset: %{y}<br>Contribución: %{z:.0f} bps<extra></extra>"
@@ -1896,8 +1539,6 @@
       layout.xaxis.type = "category";
       layout.yaxis.type = "category";
       layout.yaxis.autorange = "reversed";
-      layout.yaxis.tickfont = { size: 10 };
-      layout.margin.l = 125;
 
       Plotly.react("chartHeatmap", [trace], layout, { displayModeBar: false, responsive: true });
     }
@@ -1924,10 +1565,7 @@
       const colors = y.map(val => (val >= 0 ? "#16a34a" : "#ef4444"));
 
       const trace = {
-        type: "bar",
-        x,
-        y,
-        marker: { color: colors },
+        type: "bar", x, y, marker: { color: colors },
         hovertemplate: "%{x}<br>Contribución: %{y:.0f} bps<extra></extra>"
       };
 
@@ -1939,6 +1577,7 @@
       Plotly.react("chartBars", [trace], layout, { displayModeBar: false, responsive: true });
     }
 
+    /* ======== Histograma de alpha diario ======== */
     function plotHist() {
       if (!window.Plotly) return;
       const v = state.focusVector;
@@ -2007,16 +1646,14 @@
         appendDiag("Plotly no está disponible, revisa la ubicación del archivo.");
         return;
       }
-
       ensureVisibilityDefaults();
       updateTitleSuffixes();
       updateMetrics();
       plotCumulative();
       renderIndexedReturnsChart();
-      renderReturnBarsChart();
-      plotWaterfall();
+      renderReturnBarsChart();   // con chips
+      plotWaterfall();           // con chips
       plotDecomposition();
-      renderFocusGapsTable();
       plotDrawdown();
       plotHeatmap();
       plotContributionBars();
@@ -2046,19 +1683,23 @@
       chip.textContent = n === 0 ? "0 seleccionados" : (n === 1 ? `${state.selectedVectors[0]}` : `${n} seleccionados`);
     }
 
+    /* ======= POPUP de vectores (anclado) ======= */
     function positionPopover(pop, anchorBtn) {
       const btnRect = anchorBtn.getBoundingClientRect();
       const vw = document.documentElement.clientWidth;
       const vh = document.documentElement.clientHeight;
-      const popRect = pop.getBoundingClientRect();
 
+      const popRect = pop.getBoundingClientRect(); // tras abrir en display:block
+
+      // Preferir debajo del botón, alineado a la izquierda; ajustar si se sale
       let top = btnRect.bottom + 8;
       let left = btnRect.left;
 
+      // Si no cabe hacia abajo, abrir hacia arriba
       if (top + popRect.height > vh - 8) {
         top = Math.max(8, btnRect.top - 8 - popRect.height);
       }
-
+      // Si se sale por la derecha, ajustar
       if (left + popRect.width > vw - 8) {
         left = Math.max(8, vw - 8 - popRect.width);
       }
@@ -2074,6 +1715,7 @@
       const search = document.getElementById("vpSearch");
       const btn = document.getElementById("openVectorModal");
 
+      // Construir lista / refrescar
       const buildList = (filterText = "") => {
         list.innerHTML = "";
         const frag = document.createDocumentFragment();
@@ -2082,28 +1724,21 @@
         state.vectorNames.forEach(v => {
           if (needle && !v.toLowerCase().includes(needle)) return;
           const id = "vp_" + btoa(encodeURIComponent(v)).replace(/=/g, "");
-          const wrap = document.createElement("label");
-          wrap.className = "checkbox";
+          const wrap = document.createElement("label"); wrap.className = "checkbox";
           const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.value = v;
-          cb.id = id;
+          cb.type = "checkbox"; cb.value = v; cb.id = id;
           cb.checked = state.selectedVectors.includes(v);
-          const span = document.createElement("span");
-          span.textContent = v;
-          wrap.appendChild(cb);
-          wrap.appendChild(span);
+          const span = document.createElement("span"); span.textContent = v;
+          wrap.appendChild(cb); wrap.appendChild(span);
           frag.appendChild(wrap);
         });
-
         list.appendChild(frag);
         refreshCount();
       };
 
       const refreshCount = () => {
         const cbs = list.querySelectorAll('input[type="checkbox"]');
-        let n = 0;
-        cbs.forEach(cb => { if (cb.checked) n++; });
+        let n = 0; cbs.forEach(cb => { if (cb.checked) n++; });
         count.textContent = String(n);
       };
 
@@ -2111,24 +1746,24 @@
       pop.classList.add("open");
       btn.setAttribute("aria-expanded", "true");
 
-      pop.style.display = "block";
+      // Posicionar respecto al botón (usar display:block para medir)
+      pop.style.display = "block"; // temporal para medir
       positionPopover(pop, btn);
 
+      // Eventos internos
       list.onchange = refreshCount;
       search.oninput = (e) => buildList(e.target.value || "");
 
-      document.getElementById("vpAll").onclick = () => {
+      document.getElementById("vpAll").onclick  = () => {
         list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
         refreshCount();
       };
-
       document.getElementById("vpNone").onclick = () => {
         list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         refreshCount();
       };
-
       document.getElementById("vpCancel").onclick = closeVectorPopover;
-      document.getElementById("vpApply").onclick = () => {
+      document.getElementById("vpApply").onclick  = () => {
         const sel = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
         state.selectedVectors = sel;
         updateVectorSummaryChip();
@@ -2136,8 +1771,11 @@
         closeVectorPopover();
       };
 
+      // Cerrar al hacer clic fuera
       window.addEventListener("mousedown", outsideClickHandler, { capture: true });
+      // Cerrar con Escape
       window.addEventListener("keydown", escHandler);
+      // Reposicionar en scroll/resize
       window.addEventListener("scroll", repositionHandler, { passive: true });
       window.addEventListener("resize", repositionHandler);
 
@@ -2145,19 +1783,19 @@
         if (pop.contains(ev.target) || btn.contains(ev.target)) return;
         closeVectorPopover();
       }
-
       function escHandler(ev) {
         if (ev.key === "Escape") closeVectorPopover();
       }
-
       function repositionHandler() {
         if (pop.classList.contains("open")) positionPopover(pop, btn);
       }
 
+      // Guardar handlers para quitarlos al cerrar (en propiedades del nodo)
       pop._outsideClickHandler = outsideClickHandler;
       pop._escHandler = escHandler;
       pop._repositionHandler = repositionHandler;
 
+      // Enfocar buscador para UX
       setTimeout(() => search.focus(), 0);
     }
 
@@ -2168,6 +1806,7 @@
       pop.style.display = "none";
       btn.setAttribute("aria-expanded", "false");
 
+      // Limpieza de listeners
       if (pop._outsideClickHandler) {
         window.removeEventListener("mousedown", pop._outsideClickHandler, { capture: true });
         pop._outsideClickHandler = null;
@@ -2182,125 +1821,105 @@
         pop._repositionHandler = null;
       }
     }
+    /* ======= FIN POPUP ======= */
 
     function initUI() {
       const vFocus = document.getElementById("vectorFocus");
 
+      // Poblado de opciones de foco
       state.vectorNames.forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v;
-        opt.textContent = v;
-        vFocus.appendChild(opt);
+        const opt2 = document.createElement("option");
+        opt2.value = v; opt2.textContent = v;
+        vFocus.appendChild(opt2);
       });
 
+      // Defaults: intentar "cual" y "final"
       const lower = new Map(state.vectorNames.map(n => [n.toLowerCase(), n]));
       const defaults = [];
-      if (lower.has("cual")) defaults.push(lower.get("cual"));
+      if (lower.has("cual"))  defaults.push(lower.get("cual"));
       if (lower.has("final")) defaults.push(lower.get("final"));
-
       if (defaults.length === 0) state.selectedVectors = state.vectorNames.slice(0, Math.min(3, state.vectorNames.length));
       else state.selectedVectors = Array.from(new Set(defaults));
 
+      // Vector foco por defecto
       state.focusVector = lower.get("final") ?? (state.vectorNames[0] || null);
       vFocus.value = state.focusVector || "";
 
+      // Fechas
       const dFrom = document.getElementById("dateFrom");
-      const dTo = document.getElementById("dateTo");
+      const dTo   = document.getElementById("dateTo");
       const minISO = state.isoDates[0];
       const maxISO = state.isoDates[state.isoDates.length - 1];
       dFrom.min = minISO; dFrom.max = maxISO;
-      dTo.min = minISO; dTo.max = maxISO;
-      dFrom.value = ""; dTo.value = "";
+      dTo.min = minISO;   dTo.max = maxISO;
+      dFrom.value = "";   dTo.value = "";
 
-      document.getElementById("dateCount").textContent = state.isoDates.length;
-      document.getElementById("assetCount").textContent = Object.keys(state.returnsByAsset).length;
+      document.getElementById("dateCount").textContent   = state.isoDates.length;
+      document.getElementById("assetCount").textContent  = Object.keys(state.returnsByAsset).length;
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
       ensureVisibilityDefaults();
       updateVectorSummaryChip();
 
+      // Listeners
       vFocus.addEventListener("change", () => {
         state.focusVector = vFocus.value || null;
         state.visibility.waterfall = new Set(getFocusVectorAssetsOrdered());
-        state.visibility.gapsTable = new Set(getFocusVectorAssetsCsvOrdered());
         renderAll();
       });
 
-      document.getElementById("openVectorModal").addEventListener("click", () => {
+      // POPUP anclado
+      document.getElementById("openVectorModal").addEventListener("click", (e) => {
         const pop = document.getElementById("vectorPopover");
-        if (pop.classList.contains("open")) closeVectorPopover();
-        else openVectorPopover();
+        if (pop.classList.contains("open")) closeVectorPopover(); else openVectorPopover();
       });
 
       document.getElementById("quickRanges").addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-range]");
-        if (!btn) return;
+        const btn = e.target.closest("button[data-range]"); if (!btn) return;
         const key = btn.getAttribute("data-range");
-        const idxs = idxWindowByKey(key);
-        if (!idxs.length) return;
-        const df = state.dates[idxs[0]];
-        const dt = state.dates[idxs[idxs.length - 1]];
-        state.dateFrom = df;
-        state.dateTo = dt;
-        state.windowKey = key;
+        const idxs = idxWindowByKey(key); if (!idxs.length) return;
+        const df = state.dates[idxs[0]]; const dt = state.dates[idxs[idxs.length - 1]];
+        state.dateFrom = df; state.dateTo = dt; state.windowKey = key;
         document.getElementById("dateFrom").value = toISODate(df);
-        document.getElementById("dateTo").value = toISODate(dt);
+        document.getElementById("dateTo").value   = toISODate(dt);
         renderAll();
       });
 
       document.getElementById("applyDates").addEventListener("click", () => {
-        const dFromStr = dFrom.value;
-        const dToStr = dTo.value;
+        const dFromStr = dFrom.value; const dToStr = dTo.value;
         state.dateFrom = dFromStr ? new Date(dFromStr + "T00:00:00Z") : null;
-        state.dateTo = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
-        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) {
-          alert("Fecha desde no puede ser mayor que fecha hasta.");
-          return;
-        }
+        state.dateTo   = dToStr ? new Date(dToStr + "T00:00:00Z") : null;
+        if (state.dateFrom && state.dateTo && state.dateFrom > state.dateTo) { alert("Fecha desde no puede ser mayor que fecha hasta."); return; }
         state.windowKey = "CUSTOM";
         renderAll();
       });
 
       document.getElementById("resetDates").addEventListener("click", () => {
-        state.dateFrom = null;
-        state.dateTo = null;
-        state.windowKey = "ALL";
-        dFrom.value = "";
-        dTo.value = "";
+        state.dateFrom = null; state.dateTo = null; state.windowKey = "ALL";
+        dFrom.value = ""; dTo.value = "";
         renderAll();
       });
 
-      const iconSun = document.getElementById("iconSun");
+      // Tema: íconos sol/luna
+      const iconSun  = document.getElementById("iconSun");
       const iconMoon = document.getElementById("iconMoon");
       const updateThemeIcon = () => {
-        if (state.theme === "dark") {
-          iconSun.classList.add("hidden");
-          iconMoon.classList.remove("hidden");
-        } else {
-          iconMoon.classList.add("hidden");
-          iconSun.classList.remove("hidden");
-        }
+        if (state.theme === "dark") { iconSun.classList.add("hidden"); iconMoon.classList.remove("hidden"); }
+        else { iconMoon.classList.add("hidden"); iconSun.classList.remove("hidden"); }
       };
-
       document.getElementById("themeToggle").addEventListener("click", () => {
         state.theme = (state.theme === "light" ? "dark" : "light");
         document.documentElement.setAttribute("data-theme", state.theme);
         updateThemeIcon();
         renderAll();
       });
-
       updateThemeIcon();
 
       window.addEventListener("resize", () => renderAll());
     }
 
-    window.addEventListener("error", (e) => {
-      appendDiag({ js_error: e.message || String(e) });
-    });
-
-    window.addEventListener("unhandledrejection", (e) => {
-      appendDiag({ promise_rejection: String(e.reason) });
-    });
+    window.addEventListener("error", (e) => { appendDiag({ js_error: e.message || String(e) }); });
+    window.addEventListener("unhandledrejection", (e) => { appendDiag({ promise_rejection: String(e.reason) }); });
 
     // =============================
     // INICIALIZACIÓN
@@ -2314,7 +1933,7 @@
         precomputeAll();
         initUI();
         renderAll();
-        setStatus("");
+        setStatus(""); // sin texto visible en header
       } catch (err) {
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
