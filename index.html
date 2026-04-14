@@ -165,6 +165,12 @@
       font-family: 'SuraSans';
     }
 
+/* Forzar fuente corporativa en controles (algunos navegadores no heredan en botones) */
+button, input, select, textarea { font-family: 'SuraSans' !important; }
+select, input, button { font-family: 'SuraSans' !important; }
+.btn, .legend-chip, .chip, label { font-family: 'SuraSans' !important; }
+
+
     .app {
       display: grid;
       grid-template-rows: auto auto auto 1fr;
@@ -195,6 +201,14 @@
       font-size: 18px;
       line-height: 1.2;
     }
+header .title .app-version {
+  font-weight: 600;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+}
+
 
     /* Botón icon-only (tema) */
     .icon-btn {
@@ -492,7 +506,7 @@
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación v9</div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V10</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -902,7 +916,7 @@
         showlegend: false,
         annotations: [{
           text: message, x: 0.5, y: 0.5, xref: "paper", yref: "paper",
-          showarrow: false, font: { color: c.muted, size: 13 }
+          showarrow: false, font: { color: c.muted, size: 13, family: 'SuraSans' }
         }]
       };
     }
@@ -1319,7 +1333,7 @@ function ensureVisibilityDefaults() {
     function baseLayout(title = "") {
       const c = getThemeColors();
       return {
-        title: { text: title, font: { size: 12 }, x: 0, xanchor: "left" },
+        title: { text: title, font: { size: 12, family: 'SuraSans' }, x: 0, xanchor: "left" },
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
         font: { color: c.text, family: 'SuraSans' },
