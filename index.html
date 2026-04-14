@@ -6,9 +6,124 @@
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
   <!-- Carga correcta de Plotly -->
-  <script src="./plotly.min.js"></script>
+  <script src="./Libraries/plotly.min.js"></script>
 
   <style>
+
+/* ===== Fuente corporativa (local) ===== */
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-ThinItalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-ExtraLight.otf') format('opentype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-ExtraLightItalic.otf') format('opentype');
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-SemiBoldItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-ExtraBoldItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuraSans';
+  src: url('./Format/SuraSans-BlackItalic.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
     :root {
       --bg: #f6f7fb;
       --panel: #ffffff;
@@ -47,7 +162,7 @@
       min-height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: 'SuraSans';
     }
 
     .app {
@@ -377,7 +492,7 @@
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación v8</div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación v9</div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -780,7 +895,7 @@
       return {
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
-        font: { color: c.text },
+        font: { color: c.text, family: 'SuraSans' },
         margin: { l: 55, r: 20, t: 10, b: 45 },
         xaxis: { visible: false },
         yaxis: { visible: false },
@@ -1207,7 +1322,7 @@ function ensureVisibilityDefaults() {
         title: { text: title, font: { size: 12 }, x: 0, xanchor: "left" },
         paper_bgcolor: c.panel,
         plot_bgcolor: c.panel,
-        font: { color: c.text },
+        font: { color: c.text, family: 'SuraSans' },
         margin: { l: 55, r: 20, t: 30, b: 80 }, // espacio para leyenda abajo
         hovermode: "x unified",
         xaxis: { showgrid: true, gridcolor: c.grid, zeroline: false },
