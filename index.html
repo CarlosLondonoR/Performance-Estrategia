@@ -137,6 +137,8 @@
       --bad: #dc2626;
       --chip: #eef2ff;
       --chip-active: #dbeafe;
+ --corr-diag-fill: #e5e7eb;
+ --corr-diag-text: #0f172a;
 
       /* sticky */
       --hdr-h: 51px;
@@ -154,6 +156,8 @@
       --edge: #0f172a;
       --chip: #1e293b;
       --chip-active: #1d4ed8;
+ --corr-diag-fill: #334155;
+ --corr-diag-text: #ffffff;
     }
 
     html, body {
@@ -503,52 +507,63 @@ header .title .app-version {
 
 
 /* ===== Tabla de correlaciones de alpha diario ===== */
+#cardCorr {
+ min-height: auto;
+}
+#cardCorr .corr-table-wrap {
+ flex: 0 0 auto;
+}
 .corr-table-wrap {
-  border: 1px solid var(--edge);
-  border-radius: 12px;
-  padding: 10px;
-  overflow: auto;
-  background: var(--panel);
+ border: 1px solid var(--edge);
+ border-radius: 12px;
+ padding: 10px;
+ overflow: auto;
+ background: var(--panel);
 }
 .corr-note { font-size: 12px; color: var(--muted); }
 table.corr-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+ width: 100%;
+ border-collapse: collapse;
+ font-size: 12px;
 }
 table.corr-tbl th, table.corr-tbl td {
-  border-bottom: 1px solid var(--grid);
-  padding: 7px 8px;
-  text-align: right;
-  white-space: nowrap;
+ border-bottom: 1px solid var(--grid);
+ padding: 7px 8px;
+ text-align: right;
+ white-space: nowrap;
 }
 table.corr-tbl th:first-child, table.corr-tbl td:first-child {
-  text-align: left;
-  position: sticky;
-  left: 0;
-  background: var(--panel);
-  z-index: 1;
+ text-align: left;
+ position: sticky;
+ left: 0;
+ background: var(--panel);
+ z-index: 1;
 }
 table.corr-tbl thead th {
-  position: sticky;
-  top: 0;
-  background: var(--panel);
-  z-index: 2;
+ position: sticky;
+ top: 0;
+ background: var(--panel);
+ z-index: 2;
 }
 .corr-cell {
-  font-variant-numeric: tabular-nums;
-  font-weight: 650;
+ font-variant-numeric: tabular-nums;
+ font-weight: 650;
 }
 .corr-diag {
-  font-weight: 700;
+ font-weight: 700;
+ color: var(--corr-diag-text) !important;
 }
+.corr-td-diag {
+ background: var(--corr-diag-fill);
+}
+
 
 </style>
 </head>
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V11</span></div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V12</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -2054,39 +2069,42 @@ function buildCorrelationMatrix(vectorNames, idxs) {
 }
 
 function renderCorrelationModule() {
-  const cont = document.getElementById("corrTable");
-  if (!cont) return;
-  const sel = selectedVectorsList();
-  const idxs = getCurrentWindowIdxs();
-  cont.innerHTML = "";
-  if (sel.length < 2) {
-    cont.innerHTML = '<div class="corr-note">Selecciona al menos 2 vectores para calcular correlaciones.</div>';
-    return;
+ const cont = document.getElementById("corrTable");
+ if (!cont) return;
+ const sel = selectedVectorsList();
+ const idxs = getCurrentWindowIdxs();
+ cont.innerHTML = "";
+ if (sel.length < 2) {
+  cont.innerHTML = '<div class="corr-note">Selecciona al menos 2 vectores para calcular correlaciones.</div>';
+  return;
+ }
+ if (!idxs.length) {
+  cont.innerHTML = '<div class="corr-note">No hay fechas visibles para la ventana seleccionada.</div>';
+  return;
+ }
+ const matrix = buildCorrelationMatrix(sel, idxs);
+ const muted = getThemeColors().muted;
+ const parts = [];
+ parts.push('<table class="corr-tbl">');
+ parts.push('<thead><tr><th>Vector</th>' + sel.map(v => `<th>${v}</th>`).join('') + '</tr></thead>');
+ parts.push('<tbody>');
+ for (let r = 0; r < sel.length; r++) {
+  parts.push(`<tr><td>${sel[r]}</td>`);
+  for (let c = 0; c < sel.length; c++) {
+   const val = matrix[r][c];
+   const txt = Number.isFinite(val) ? val.toFixed(2) : '—';
+   if (r === c) {
+    parts.push(`<td class="corr-td-diag"><span class="corr-cell corr-diag">${txt}</span></td>`);
+   } else {
+    const color = Number.isFinite(val) ? valueToColor(val, -1, 1) : muted;
+    parts.push(`<td><span class="corr-cell" style="color:${color}">${txt}</span></td>`);
+   }
   }
-  if (!idxs.length) {
-    cont.innerHTML = '<div class="corr-note">No hay fechas visibles para la ventana seleccionada.</div>';
-    return;
-  }
-  const matrix = buildCorrelationMatrix(sel, idxs);
-  const parts = [];
-  parts.push('<table class="corr-tbl">');
-  parts.push('<thead><tr><th>Vector</th>' + sel.map(v => `<th>${v}</th>`).join('') + '</tr></thead>');
-  parts.push('<tbody>');
-  for (let r = 0; r < sel.length; r++) {
-    parts.push(`<tr><td>${sel[r]}</td>`);
-    for (let c = 0; c < sel.length; c++) {
-      const val = matrix[r][c];
-      const color = Number.isFinite(val) ? valueToColor(val, -1, 1) : getThemeColors().muted;
-      const txt = Number.isFinite(val) ? val.toFixed(2) : '—';
-      const cls = 'corr-cell' + (r === c ? ' corr-diag' : '');
-      parts.push(`<td><span class="${cls}" style="color:${color}">${txt}</span></td>`);
-    }
-    parts.push('</tr>');
-  }
-  parts.push('</tbody></table>');
-  cont.innerHTML = parts.join('');
+  parts.push('</tr>');
+ }
+ parts.push('</tbody></table>');
+ cont.innerHTML = parts.join('');
 }
-
 function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const monthKeys = [];
