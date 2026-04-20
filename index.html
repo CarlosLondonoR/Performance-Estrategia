@@ -501,12 +501,54 @@ header .title .app-version {
   .gap-muted { color: var(--muted); }
   .gap-val { font-variant-numeric: tabular-nums; font-weight: 650; }
 
+
+/* ===== Tabla de correlaciones de alpha diario ===== */
+.corr-table-wrap {
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 10px;
+  overflow: auto;
+  background: var(--panel);
+}
+.corr-note { font-size: 12px; color: var(--muted); }
+table.corr-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+table.corr-tbl th, table.corr-tbl td {
+  border-bottom: 1px solid var(--grid);
+  padding: 7px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+table.corr-tbl th:first-child, table.corr-tbl td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+table.corr-tbl thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 2;
+}
+.corr-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.corr-diag {
+  font-weight: 700;
+}
+
 </style>
 </head>
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V10</span></div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V11</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -731,7 +773,21 @@ header .title .app-version {
       </div>
     
 
-    <!-- Gaps del vector foco — FULL (colapsable) -->
+    
+ <!-- Correlaciones de alpha diario — FULL -->
+ <div class="card span-2" id="cardCorr">
+  <h3>
+   <span>Correlación de alpha diario entre vectores seleccionados</span>
+   <span class="small" id="sfxCorr"></span>
+   <span class="small">Pearson</span>
+  </h3>
+  <div class="corr-table-wrap">
+   <div id="corrTable"></div>
+  </div>
+ </div>
+
+ <!-- Gaps del vector foco — FULL (colapsable) -->
+
     <div class="card span-2 collapsed" id="cardGaps">
       <h3 id="gapsHeader" title="Clic para expandir/colapsar">
         <span><span class="chev">▶</span> Gaps del vector foco — Subrangos y alpha por asset class</span>
@@ -1324,7 +1380,7 @@ function ensureVisibilityDefaults() {
       const label = getWindowLabel();
       const set = (id) => { const el = document.getElementById(id); if (el) el.textContent = `(${label})`; };
       set("sfxCumulative"); set("sfxIndexed"); set("sfxReturnBars"); set("sfxWaterfall"); set("sfxDecomposition");
-      set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist"); set("sfxGaps");
+      set("sfxDrawdown"); set("sfxHeatmap"); set("sfxBars"); set("sfxHist"); set("sfxCorr"); set("sfxGaps");
     }
 
     // =============================
@@ -1957,6 +2013,80 @@ function renderGapsModule() {
     cont.innerHTML = `<div class="gap-muted">Error renderizando gaps: ${(err && err.message) ? err.message : String(err)}</div>`;
   }
 }
+
+function computePearsonCorrelation(arrA, arrB, idxs) {
+  let n = 0, sumX = 0, sumY = 0, sumXX = 0, sumYY = 0, sumXY = 0;
+  for (const i of idxs) {
+    const x = arrA?.[i];
+    const y = arrB?.[i];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    n++;
+    sumX += x;
+    sumY += y;
+    sumXX += x * x;
+    sumYY += y * y;
+    sumXY += x * y;
+  }
+  if (n < 2) return NaN;
+  const num = (n * sumXY) - (sumX * sumY);
+  const denX = (n * sumXX) - (sumX * sumX);
+  const denY = (n * sumYY) - (sumY * sumY);
+  const den = Math.sqrt(denX * denY);
+  if (!Number.isFinite(den) || den <= 0) return NaN;
+  return num / den;
+}
+
+function buildCorrelationMatrix(vectorNames, idxs) {
+  const matrix = [];
+  for (let r = 0; r < vectorNames.length; r++) {
+    const row = [];
+    const vr = vectorNames[r];
+    const ar = state.perVector[vr]?.alpha;
+    for (let c = 0; c < vectorNames.length; c++) {
+      const vc = vectorNames[c];
+      if (r === c) { row.push(1); continue; }
+      const ac = state.perVector[vc]?.alpha;
+      row.push(computePearsonCorrelation(ar, ac, idxs));
+    }
+    matrix.push(row);
+  }
+  return matrix;
+}
+
+function renderCorrelationModule() {
+  const cont = document.getElementById("corrTable");
+  if (!cont) return;
+  const sel = selectedVectorsList();
+  const idxs = getCurrentWindowIdxs();
+  cont.innerHTML = "";
+  if (sel.length < 2) {
+    cont.innerHTML = '<div class="corr-note">Selecciona al menos 2 vectores para calcular correlaciones.</div>';
+    return;
+  }
+  if (!idxs.length) {
+    cont.innerHTML = '<div class="corr-note">No hay fechas visibles para la ventana seleccionada.</div>';
+    return;
+  }
+  const matrix = buildCorrelationMatrix(sel, idxs);
+  const parts = [];
+  parts.push('<table class="corr-tbl">');
+  parts.push('<thead><tr><th>Vector</th>' + sel.map(v => `<th>${v}</th>`).join('') + '</tr></thead>');
+  parts.push('<tbody>');
+  for (let r = 0; r < sel.length; r++) {
+    parts.push(`<tr><td>${sel[r]}</td>`);
+    for (let c = 0; c < sel.length; c++) {
+      const val = matrix[r][c];
+      const color = Number.isFinite(val) ? valueToColor(val, -1, 1) : getThemeColors().muted;
+      const txt = Number.isFinite(val) ? val.toFixed(2) : '—';
+      const cls = 'corr-cell' + (r === c ? ' corr-diag' : '');
+      parts.push(`<td><span class="${cls}" style="color:${color}">${txt}</span></td>`);
+    }
+    parts.push('</tr>');
+  }
+  parts.push('</tbody></table>');
+  cont.innerHTML = parts.join('');
+}
+
 function groupContribByMonthAndAsset(vectorName, idxs) {
       const daily = state.perVector[vectorName].contribByAssetDaily;
       const monthKeys = [];
@@ -2142,8 +2272,9 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       plotDrawdown();
       plotHeatmap();
       plotContributionBars();
-      plotHist();
-      renderGapsModule();
+ renderCorrelationModule();
+ plotHist();
+ renderGapsModule();
     }
 
     // =============================
