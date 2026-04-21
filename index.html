@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alpha Dashboard — Desempeño de Vectores</title>
 
-  <!-- Carga correcta de Plotly -->
+  <!-- Plotly local -->
   <script src="./Libraries/plotly.min.js"></script>
 
   <style>
@@ -169,9 +169,8 @@
       font-family: 'SuraSans';
     }
 
-/* Forzar fuente corporativa en controles (algunos navegadores no heredan en botones) */
+/* Fuente corporativa también en controles */
 button, input, select, textarea { font-family: 'SuraSans' !important; }
-select, input, button { font-family: 'SuraSans' !important; }
 .btn, .legend-chip, .chip, label { font-family: 'SuraSans' !important; }
 
 
@@ -571,7 +570,7 @@ table.corr-tbl th, table.corr-tbl td {
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V13</span></div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V14</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -962,17 +961,9 @@ table.corr-tbl th, table.corr-tbl td {
     }
 
     // No-op si el span ya no existe (quitado del header)
-    function setStatus(text) {
-      const el = document.getElementById("loadStatus");
-      if (el) el.textContent = text;
-    }
+    function setStatus(_text) {}
 
-    function appendDiag(msgObj) {
-      const pre = document.getElementById("diagBox");
-      const line = typeof msgObj === "string" ? msgObj : JSON.stringify(msgObj, null, 2);
-      if (pre) pre.textContent = (pre.textContent === "—" ? "" : pre.textContent + "\n") + line;
-      console.log("[Diag]", msgObj);
-    }
+    function appendDiag(msgObj) { console.log("[Diag]", msgObj); }
 
     function getThemeColors() {
       return {
