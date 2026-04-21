@@ -1002,6 +1002,7 @@ table.corr-tbl th, table.corr-tbl td {
       groupsByAsset: {},
       vectors: {},
       vectorNames: [],
+      gapYears: [],
       perVector: {},
       selectedVectors: [],
       focusVector: null,
@@ -1142,6 +1143,20 @@ function ensureVisibilityDefaults() {
       const vectors = {};
     const vectorAssetOrder = {};
       const vectorCols = gaps.headers.slice(1);
+      const gapYears = (() => {
+        const years = new Set();
+        for (const iso of commonISO) {
+          const row = gaps.rows[idxGP.get(iso)];
+          if (!row) continue;
+          let hasNonZeroGap = false;
+          for (const col of vectorCols) {
+            const vv = toNumberCell(row[col]);
+            if (Number.isFinite(vv) && Math.abs(vv) > 0) { hasNonZeroGap = true; break; }
+          }
+          if (hasNonZeroGap) years.add(new Date(iso + "T00:00:00Z").getUTCFullYear());
+        }
+        return Array.from(years).sort((a, b) => a - b);
+      })();
       for (const col of vectorCols) {
         if (!col) continue;
         const lastUnd = col.lastIndexOf("_");
@@ -1170,6 +1185,7 @@ function ensureVisibilityDefaults() {
       state.vectors = vectors;
     state.vectorAssetOrder = vectorAssetOrder;
     state.vectorNames = Object.keys(vectors).sort((a, b) => a.localeCompare(b, "es"));
+      state.gapYears = gapYears;
 
       document.getElementById("dateCount").textContent = commonISO.length;
       document.getElementById("assetCount").textContent = Object.keys(returnsByAsset).length;
@@ -1291,10 +1307,8 @@ function ensureVisibilityDefaults() {
         case "3Y": from = addMonths(last, -36); break;
         case "ALL": from = dates[0]; break;
         default:
-      if (key && key.startsWith("Y-")) {
-        return idxWindowByYear(parseInt(key.slice(2), 10));
-      }
-      from = dates[0];
+          if (key && key.startsWith("Y-")) return idxWindowByYear(parseInt(key.slice(2), 10));
+          from = dates[0];
       }
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
@@ -2299,35 +2313,36 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
  renderGapsModule();
     }
 
-    function getAvailableYears() {
-  const years = new Set();
-  for (const d of state.dates) years.add(d.getUTCFullYear());
-  return Array.from(years).sort((a, b) => a - b);
-}
+function getAvailableGapYears() {
+      return Array.isArray(state.gapYears) ? state.gapYears.slice() : [];
+    }
 
-function idxWindowByYear(year) {
-  const from = new Date(Date.UTC(year, 0, 1));
-  const to = new Date(Date.UTC(year, 11, 31));
-  return idxWindowByDates(state.dates, from, to);
-}
+    function idxWindowByYear(year) {
+      const from = new Date(Date.UTC(year, 0, 1));
+      const to   = new Date(Date.UTC(year, 11, 31));
+      return idxWindowByDates(state.dates, from, to);
+    }
 
-function injectYearQuickButtons() {
-  const wrap = document.getElementById("quickRanges");
-  if (!wrap) return;
-  wrap.querySelectorAll('button[data-range^="Y-"]').forEach(btn => btn.remove());
-  const allBtn = wrap.querySelector('button[data-range="ALL"]');
-  getAvailableYears().forEach(year => {
-    const btn = document.createElement("button");
-    btn.className = "btn ghost small";
-    btn.type = "button";
-    btn.dataset.range = `Y-${year}`;
-    btn.textContent = String(year);
-    if (allBtn) wrap.insertBefore(btn, allBtn);
-    else wrap.appendChild(btn);
-  });
-}
+    function injectYearQuickButtons() {
+      const wrap = document.getElementById("quickRanges");
+      if (!wrap) return;
 
-// =============================
+      // Elimina botones anuales previamente inyectados
+      wrap.querySelectorAll('button[data-range^="Y-"]').forEach(btn => btn.remove());
+
+      const allBtn = wrap.querySelector('button[data-range="ALL"]');
+      getAvailableGapYears().forEach(year => {
+        const btn = document.createElement("button");
+        btn.className = "btn ghost small";
+        btn.type = "button";
+        btn.dataset.range = `Y-${year}`;
+        btn.textContent = String(year);
+        if (allBtn) wrap.insertBefore(btn, allBtn);
+        else wrap.appendChild(btn);
+      });
+    }
+
+    // =============================
     // UI / EVENTOS
     // =============================
     function bindUIDelegates() {
