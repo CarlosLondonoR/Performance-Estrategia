@@ -482,16 +482,18 @@ header .title .app-version {
     border-collapse: collapse;
     font-size: 12px;
   }
-  table.gap-tbl th, table.gap-tbl td {
-    border-bottom: 1px solid var(--grid);
-    padding: 6px 6px;
-    text-align: right;
-    white-space: nowrap;
-  }
-  table.gap-tbl th:first-child, table.gap-tbl td:first-child {
-    text-align: left;
-    width: 40%;
-  }
+  table.gap-tbl th, table.gap-tbl td { 
+ border-bottom: 1px solid var(--grid); 
+ padding: 6px 6px; 
+ text-align: center; 
+ vertical-align: middle; 
+ white-space: nowrap; 
+ } 
+ table.gap-tbl th:first-child, table.gap-tbl td:first-child { 
+ text-align: center; 
+ vertical-align: middle; 
+ width: 40%; 
+ }
   table.gap-tbl thead th {
     position: sticky;
     top: 0;
@@ -526,29 +528,35 @@ table.corr-tbl {
  border-collapse: collapse;
  font-size: 12px;
 }
-table.corr-tbl th, table.corr-tbl td {
- border-bottom: 1px solid var(--grid);
- padding: 7px 8px;
- text-align: right;
- white-space: nowrap;
-}
-table.corr-tbl th:first-child, table.corr-tbl td:first-child {
- text-align: left;
- position: sticky;
- left: 0;
- background: var(--panel);
- z-index: 1;
-}
-table.corr-tbl thead th {
- position: sticky;
- top: 0;
- background: var(--panel);
- z-index: 2;
-}
-.corr-cell {
- font-variant-numeric: tabular-nums;
- font-weight: 650;
-}
+table.corr-tbl th, table.corr-tbl td { 
+ border-bottom: 1px solid var(--grid); 
+ padding: 7px 8px; 
+ text-align: center; 
+ vertical-align: middle; 
+ white-space: nowrap; 
+ } 
+ table.corr-tbl th:first-child, table.corr-tbl td:first-child { 
+ text-align: center; 
+ vertical-align: middle; 
+ position: sticky; 
+ left: 0; 
+ background: var(--panel); 
+ z-index: 1; 
+ } 
+ table.corr-tbl thead th { 
+ position: sticky; 
+ top: 0; 
+ background: var(--panel); 
+ z-index: 2; 
+ font-weight: 700; 
+ } 
+ table.corr-tbl tbody td:first-child { 
+ font-weight: 700; 
+ } 
+ .corr-cell { 
+ font-variant-numeric: tabular-nums; 
+ font-weight: 650; 
+ }
 .corr-diag {
  font-weight: 700;
  color: var(--corr-diag-text) !important;
@@ -563,7 +571,7 @@ table.corr-tbl thead th {
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V12</span></div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V13</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
