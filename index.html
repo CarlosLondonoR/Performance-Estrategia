@@ -570,7 +570,7 @@ table.corr-tbl th, table.corr-tbl td {
 <body>
   <div class="app">
     <header>
-      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V14</span></div>
+      <div class="title">Alpha Dashboard — Vectores de Recomendación <span class="app-version">V15</span></div>
       <div class="row">
         <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema (claro/oscuro)" title="Cambiar tema">
           <!-- Ícono Sol -->
@@ -1290,7 +1290,11 @@ function ensureVisibilityDefaults() {
         case "2Y": from = addMonths(last, -24); break;
         case "3Y": from = addMonths(last, -36); break;
         case "ALL": from = dates[0]; break;
-        default: from = dates[0];
+        default:
+      if (key && key.startsWith("Y-")) {
+        return idxWindowByYear(parseInt(key.slice(2), 10));
+      }
+      from = dates[0];
       }
       if (from < dates[0]) from = dates[0];
       return idxWindowByDates(dates, from, to);
@@ -1386,6 +1390,7 @@ function ensureVisibilityDefaults() {
     function getWindowLabel() {
       const quick = new Set(["1M","3M","6M","YTD","1Y","2Y","3Y","ALL"]);
       if (quick.has(state.windowKey)) return state.windowKey === "ALL" ? "Desde inicio" : state.windowKey;
+      if (state.windowKey && state.windowKey.startsWith("Y-")) return state.windowKey.slice(2);
       const from = state.dateFrom ? fmtDateHuman(state.dateFrom) : fmtDateHuman(state.dates[0]);
       const to   = state.dateTo ? fmtDateHuman(state.dateTo) : fmtDateHuman(state.dates[state.dates.length - 1]);
       return `${from} - ${to}`;
@@ -2294,7 +2299,35 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
  renderGapsModule();
     }
 
-    // =============================
+    function getAvailableYears() {
+  const years = new Set();
+  for (const d of state.dates) years.add(d.getUTCFullYear());
+  return Array.from(years).sort((a, b) => a - b);
+}
+
+function idxWindowByYear(year) {
+  const from = new Date(Date.UTC(year, 0, 1));
+  const to = new Date(Date.UTC(year, 11, 31));
+  return idxWindowByDates(state.dates, from, to);
+}
+
+function injectYearQuickButtons() {
+  const wrap = document.getElementById("quickRanges");
+  if (!wrap) return;
+  wrap.querySelectorAll('button[data-range^="Y-"]').forEach(btn => btn.remove());
+  const allBtn = wrap.querySelector('button[data-range="ALL"]');
+  getAvailableYears().forEach(year => {
+    const btn = document.createElement("button");
+    btn.className = "btn ghost small";
+    btn.type = "button";
+    btn.dataset.range = `Y-${year}`;
+    btn.textContent = String(year);
+    if (allBtn) wrap.insertBefore(btn, allBtn);
+    else wrap.appendChild(btn);
+  });
+}
+
+// =============================
     // UI / EVENTOS
     // =============================
     function bindUIDelegates() {
@@ -2500,6 +2533,7 @@ function groupContribByMonthAndAsset(vectorName, idxs) {
       document.getElementById("vectorCount").textContent = state.vectorNames.length;
 
       ensureVisibilityDefaults();
+      injectYearQuickButtons();
       updateVectorSummaryChip();
 
       // Listeners
